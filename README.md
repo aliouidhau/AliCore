@@ -77,6 +77,43 @@ C 语言需要 TinyCC：仓库不打包编译器。首次点 C 教程或 C 题�
 
 `run_command`、`run_python`、`edit_file`、`apply_patch`、`delete_file`、`move_file`、`open_path` 执行前会在界面弹「允许一次」。安全模式下只留只读工具。
 
+## 插件
+
+开源版只留 8 个，按「别人能不能直接跑起来」筛过：
+
+| 插件 | 需要的依赖 |
+|---|---|
+| 技能库 | 技能目录（可选） |
+| SolidWorks 直驱 | SolidWorks + Millwright sidecar + pywin32 |
+| 文档 OCR | Ollama + `deepseek-ocr` 模型 |
+| Blender 人物建模 / VRM 二次元 | Blender + MPFB2 / VRM addon |
+| 架构图 | Pillow（装了 Graphviz 会走更好的自动布局） |
+| 白板 / 数据库建模 | 已经 build 好的前端 `dist` |
+
+内部版还有三维建模（cadquery/trimesh）、Umi-OCR、distill 记忆去重、supermemory 四类，依赖重、要额外编二进制或独立后端，开源版默认不带。**实现代码还在 `plugins.py`**，需要的人把对应那一项加回 `build_plugins()` 就行。
+
+插件库本身不进仓库（带 node_modules，实测 4.4 GB）。放到 `plugins/` 下，或者用环境变量指过去：
+
+```bat
+set ALICORE_PLUGIN_LIB=D:\你的路径\插件
+set ALICORE_SW_EXE=D:\...\SLDWORKS.exe
+set ALICORE_BLENDER_EXE=D:\...\blender.exe
+set ALICORE_DOT_EXE=D:\...\dot.exe
+```
+
+### 自己加插件
+
+在 `plugins/ext/` 放一个 `.py`，一个文件一个插件：
+
+```python
+PLUGIN = {"id": "my_plugin", "name": "我的插件", "category": "工具", "description": "..."}
+TOOLS  = [{"name": "my_tool", "description": "给模型看的说明", "func": my_func, "tags": ("关键词",)}]
+```
+
+可选 `ready()` / `status()`，不写就当永远就绪。加载失败（语法错、字段缺、`func` 不可调用）只会跳过这一个文件，不影响内置插件。完整示例见 `plugins/ext/example_plugin.py`。
+
+插件工具默认不进常驻上下文（`json_visible=False`），靠 tags 命中或被用户在列表里点「带入 →」才挂上——发完即卸，不改全局开关。
+
 ## 语音怎么来（仓库不带音频）
 
 默认走 **Windows 内置中文语音（SAPI5）**：免费、离线、不联网，讲解文字不会发到任何服务器。

@@ -38,6 +38,24 @@ Windows 永久生效：`setx ALICORE_PLUGIN_LIB "D:\你的路径\插件"`，重�
 | `ALICORE_SW_EXE` | `SLDWORKS.exe` 路径 | 自动探 `Program Files` 两个常见位和 `D:\sw2020`，都没有就「未检测到」 |
 | `ALICORE_BLENDER_EXE` | `blender.exe` 路径 | 默认找 `<runtime>/blender/blender.exe`，没有就「Blender 未装」 |
 
+## 自己写插件
+
+复制 `ext/example_plugin.py` 改名即可。一个文件一个插件，约定：
+
+```python
+PLUGIN = {"id": "my_plugin", "name": "我的插件", "category": "工具", "description": "..."}
+TOOLS  = [{"name": "my_tool", "description": "给模型看的说明", "func": my_func, "tags": ("关键词",)}]
+```
+
+可选 `ready()` / `status()`。放进 `ext/` 就出现在插件列表，不用改仓库代码。
+加载失败只跳过这一个文件，不影响内置插件。
+
+## 架构图的后备渲染
+
+没装 Graphviz 时，`plugin_architecture_diagram` 会退到 Pillow 画分层方块图：
+能出图、能看层级和依赖方向，跨层依赖走底部通道绕开中间层，但不做 Graphviz 那种
+自动绕线优化。装了 Graphviz（或设 `ALICORE_DOT_EXE`）会自动改走 `diagrams` 的真布局。
+
 ## 缺件会怎样
 
 不会假装能用。插件列表里逐项写：

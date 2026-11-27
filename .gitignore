@@ -32,8 +32,12 @@ test_selftest.pptx
 assets/voice/
 
 # ---- 插件库：体积大（含 node_modules，实测 4.4GB），不进仓库 ----
+# README 和示例插件要进，其余一律忽略
 plugins/*
 !plugins/README.md
+!plugins/ext
+plugins/ext/*
+!plugins/ext/example_plugin.py
 
 # ---- 本地启动脚本：带本机路径，不进仓库 ----
 启动-带插件.bat

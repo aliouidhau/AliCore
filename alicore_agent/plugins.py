@@ -726,7 +726,19 @@ def _runtime_bin(name, exe):
 
 
 def _dot_exe():
-    return _runtime_bin("graphviz", "dot.exe")
+    """找 Graphviz 的 dot.exe：环境变量 > 运行时便携包 > 常见安装位 > PATH。"""
+    env = os.environ.get("ALICORE_DOT_EXE")
+    if env and os.path.exists(env):
+        return env
+    found = _runtime_bin("graphviz", "dot.exe")
+    if found:
+        return found
+    for cand in (r"C:\Program Files\Graphviz\bin\dot.exe",
+                 r"C:\Program Files (x86)\Graphviz\bin\dot.exe"):
+        if os.path.exists(cand):
+            return cand
+    import shutil
+    return shutil.which("dot") or ""
 
 
 DISTILL_EXE = os.path.join(_runtime_root(), "distill.exe")
@@ -791,28 +803,8 @@ def plugin_memory_stats():
     return _run_distill(["memory", "stats"])
 
 
-def plugin_architecture_diagram(nodes: str, edges: str, title: str = "架构图", out_path: str = "", direction: str = "LR"):
-    """用代码生成系统架构拓扑图，输出 PNG。nodes 每行「名称:备注」，edges 每行「A -> B」。"""
-    try:
-        from diagrams import Diagram, Node, Edge
-    except Exception as e:
-        return f"❌ diagrams 未安装：{type(e).__name__}"
-
-    dot = _dot_exe()
-    if dot:
-        bin_dir = os.path.dirname(dot)
-        os.environ["PATH"] = bin_dir + os.pathsep + os.environ.get("PATH", "")
-    elif not importlib.util.find_spec("graphviz"):
-        return "❌ 架构图插件未就绪：缺 Graphviz(dot)。"
-
-    node_lines = [x.strip() for x in (nodes or "").splitlines() if x.strip()]
-    edge_lines = [x.strip() for x in (edges or "").splitlines() if x.strip()]
-    if not node_lines:
-        return "❌ nodes 为空。每行一个节点，例如：网关:gateway\\n数据库:postgres"
-    if len(node_lines) > 40 or len(edge_lines) > 80:
-        return "❌ 节点最多 40 个、连线最多 80 条。"
-
-    direction = "LR" if (direction or "LR").upper() in ("LR", "RL", "TB", "BT") else "LR"
+def _diagram_paths(title, out_path):
+    """算出输出 png 路径与 stem（主渲染和后备渲染共用）。"""
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     stem = re.sub(r'[\\/:*?"<>|]', "_", title or "arch")[:30] or "arch"
     if out_path:
@@ -823,6 +815,159 @@ def plugin_architecture_diagram(nodes: str, edges: str, title: str = "架构图"
         stem = os.path.splitext(os.path.basename(p))[0]
     else:
         p = os.path.join(OUTPUT_DIR, f"{stem}_{int(time.time())}.png")
+    return p, stem
+
+
+def _render_diagram_fallback(node_lines, edge_lines, title, p, direction):
+    """Graphviz 不在时的后备：Pillow 画分层方块图。
+
+    不追求 Graphviz 的自动布局质量，只保证「不装外部二进制也能出图」。
+    分层用最长路径松弛，有环时用迭代次数兜住。
+    """
+    from PIL import Image, ImageDraw, ImageFont
+
+    nodes, order = {}, []
+    for line in node_lines:
+        key, label = (line.split(":", 1) if ":" in line else (line, line))
+        k = key.strip()
+        if not k or k in nodes:
+            continue
+        nodes[k] = (label or k).strip()
+        order.append(k)
+
+    edges, seen = [], set()
+    for line in edge_lines:
+        parts = [x.strip() for x in re.split(r'\s*-{1,2}>\s*', line) if x.strip()]
+        if len(parts) < 2:
+            continue
+        a, b = parts[0], parts[1]
+        if a in nodes and b in nodes and (a, b) not in seen:
+            seen.add((a, b))
+            edges.append((a, b))
+
+    level = {k: 0 for k in nodes}
+    for _ in range(len(nodes) + 1):
+        changed = False
+        for a, b in edges:
+            if level[b] <= level[a]:
+                level[b] = level[a] + 1
+                changed = True
+        if not changed:
+            break
+
+    layers = {}
+    for k in order:
+        layers.setdefault(level[k], []).append(k)
+    n_layers = len(layers)
+    max_per = max((len(v) for v in layers.values()), default=1) or 1
+
+    bw, bh, gx, gy, pad, head, route = 170, 54, 62, 26, 34, 56, 40
+    lr = (direction or "LR").upper() in ("LR", "RL")
+    if lr:
+        W = pad * 2 + n_layers * bw + max(0, n_layers - 1) * gx
+        H = pad * 2 + head + max_per * bh + max(0, max_per - 1) * gy + route
+    else:
+        W = pad * 2 + max_per * bw + max(0, max_per - 1) * gx + route
+        H = pad * 2 + head + n_layers * bh + max(0, n_layers - 1) * gy
+
+    reverse = (direction or "LR").upper() in ("RL", "BT")
+    pos = {}
+    for lv, keys in layers.items():
+        lv_eff = (n_layers - 1 - lv) if reverse else lv
+        for i, k in enumerate(keys):
+            if lr:
+                x = pad + lv_eff * (bw + gx)
+                y = pad + head + i * (bh + gy)
+            else:
+                x = pad + i * (bw + gx)
+                y = pad + head + lv_eff * (bh + gy)
+            pos[k] = (x, y)
+
+    img = Image.new("RGB", (max(W, 480), max(H, 260)), "#0d1418")
+    d = ImageDraw.Draw(img)
+    font_path = r"C:\Windows\Fonts\msyh.ttc"
+    try:
+        f_title = ImageFont.truetype(font_path, 19)
+        f_node = ImageFont.truetype(font_path, 13)
+    except Exception:
+        f_title = f_node = ImageFont.load_default()
+
+    d.text((pad, 18), title or "架构图", font=f_title, fill="#dfe8ee")
+    d.text((max(W, 480) - pad, 24), "Pillow 后备渲染（未检测到 Graphviz）",
+           font=f_node, fill="#5b6f7d", anchor="ra")
+
+    import math
+
+    def _arrow(pts):
+        """沿折线画线，末端补一个箭头。"""
+        d.line(pts, fill="#3f6577", width=2)
+        p1, p2 = pts[-2], pts[-1]
+        ang = math.atan2(p2[1] - p1[1], p2[0] - p1[0])
+        size = 7
+        for s in (+0.5, -0.5):
+            d.line([p2, (p2[0] - size * math.cos(ang + s), p2[1] - size * math.sin(ang + s))],
+                   fill="#3f6577", width=2)
+
+    for a, b in edges:
+        x1, y1 = pos[a]
+        x2, y2 = pos[b]
+        if lr:
+            p1 = (x1 + bw, y1 + bh / 2)
+            p2 = (x2, y2 + bh / 2)
+            if level[b] - level[a] > 1:
+                # 跨层：从源盒下方走一条公共通道，绕开中间的层
+                band = H - pad - 8
+                _arrow([p1, (p1[0] + 12, p1[1]), (p1[0] + 12, band),
+                        (p2[0] - 16, band), (p2[0] - 16, p2[1]), p2])
+            else:
+                _arrow([p1, p2])
+        else:
+            p1 = (x1 + bw / 2, y1 + bh)
+            p2 = (x2 + bw / 2, y2)
+            if level[b] - level[a] > 1:
+                band = W - pad - 8
+                _arrow([p1, (p1[0], p1[1] + 12), (band, p1[1] + 12),
+                        (band, p2[1] - 16), (p2[0], p2[1] - 16), p2])
+            else:
+                _arrow([p1, p2])
+
+    for k, label in nodes.items():
+        x, y = pos[k]
+        d.rounded_rectangle([x, y, x + bw, y + bh], radius=9,
+                            outline="#3a5568", fill="#141e26", width=1)
+        text = label if d.textlength(label, font=f_node) <= bw - 18 else label[:11] + "…"
+        d.text((x + bw / 2, y + bh / 2), text, font=f_node, fill="#cfdae2", anchor="mm")
+
+    img.save(p)
+    return f"✅ 已生成架构图（Pillow 后备）：{p}"
+
+
+def plugin_architecture_diagram(nodes: str, edges: str, title: str = "架构图", out_path: str = "", direction: str = "LR"):
+    """用代码生成系统架构拓扑图，输出 PNG。nodes 每行「名称:备注」，edges 每行「A -> B」。"""
+    node_lines = [x.strip() for x in (nodes or "").splitlines() if x.strip()]
+    edge_lines = [x.strip() for x in (edges or "").splitlines() if x.strip()]
+    if not node_lines:
+        return "❌ nodes 为空。每行一个节点，例如：网关:gateway\\n数据库:postgres"
+    if len(node_lines) > 40 or len(edge_lines) > 80:
+        return "❌ 节点最多 40 个、连线最多 80 条。"
+
+    direction = (direction or "LR").upper()
+    if direction not in ("LR", "RL", "TB", "BT"):
+        direction = "LR"
+    p, _ = _diagram_paths(title, out_path)
+
+    dot = _dot_exe()
+    if not dot:
+        try:
+            return _render_diagram_fallback(node_lines, edge_lines, title, p, direction)
+        except Exception as e:
+            return f"❌ 后备渲染也失败了：{type(e).__name__}: {e}"
+
+    os.environ["PATH"] = os.path.dirname(dot) + os.pathsep + os.environ.get("PATH", "")
+    try:
+        from diagrams import Diagram, Node, Edge
+    except Exception as e:
+        return f"❌ diagrams 未安装：{type(e).__name__}"
 
     try:
         with Diagram(title or "架构图", filename=os.path.splitext(p)[0], show=False,
@@ -1261,15 +1406,15 @@ class PendingPlugin(PluginSpec):
 
 class DiagramPlugin(PluginSpec):
     def ready(self):
-        return (importlib.util.find_spec("diagrams") is not None
-                and bool(_dot_exe()))
+        """有 Graphviz 走真布局；没有就用 Pillow 后备，所以只要 Pillow 在就算就绪。"""
+        return importlib.util.find_spec("PIL") is not None
 
     def status(self):
-        if importlib.util.find_spec("diagrams") is None:
-            return "未装 diagrams 包"
-        if not _dot_exe():
-            return "缺 Graphviz(dot)"
-        return "就绪"
+        if _dot_exe():
+            return "就绪（Graphviz 真布局）"
+        if importlib.util.find_spec("PIL") is not None:
+            return "就绪（Pillow 后备，装 Graphviz 可提升布局）"
+        return "未装 Pillow，也没检测到 Graphviz"
 
 
 class DistillPlugin(PluginSpec):
@@ -1313,7 +1458,13 @@ class SolidWorksPlugin(PluginSpec):
 
 
 def build_plugins():
-    return [
+    """开源版只带能直接跑起来的几个插件。
+
+    三维建模（cadquery/trimesh）、Umi-OCR、distill、supermemory 这几类要么依赖重、
+    要么需要额外编二进制或后端，开源用户装不上只会看到一片「未就绪」，所以默认不带。
+   它们的实现仍在 plugins.py 里，需要的人把对应那一项加回下面的列表即可。
+    """
+    builtin = [
         SkillsPlugin(
             id="skills",
             name="技能库",
@@ -1321,14 +1472,6 @@ def build_plugins():
             description="搜索并读取 skills / superpowers 本地技能，零 token。",
             tool_names=["plugin_search_skills", "plugin_read_skill"],
             source="skills + superpowers",
-        ),
-        ModelingPlugin(
-            id="modeling",
-            name="三维建模与网格",
-            category="建模",
-            description="参数化生成基础零件（STEP）并分析 STL/OBJ/GLB 网格。",
-            tool_names=["plugin_cad_primitive", "plugin_mesh_info"],
-            source="cadquery + trimesh",
         ),
         SolidWorksPlugin(
             id="solidworks",
@@ -1345,14 +1488,6 @@ def build_plugins():
                 "plugin_sw_save_as", "plugin_sw_set_view",
             ],
             source="Millwright sidecar",
-        ),
-        OcrPlugin(
-            id="ocr",
-            name="本地 OCR",
-            category="工具",
-            description="离线识别图片文字与二维码，不联网、不花 token。",
-            tool_names=["plugin_ocr_image", "plugin_ocr_qrcode"],
-            source="Umi-OCR",
         ),
         DeepseekOcrPlugin(
             id="doc_ocr",
@@ -1378,14 +1513,6 @@ def build_plugins():
             tool_names=["plugin_vrm_render"],
             source="Blender 5.0 + VRM addon",
         ),
-        DistillPlugin(
-            id="distill",
-            name="记忆去重与衰减",
-            category="记忆",
-            description="persistent memory + 写时去重 + 冲突检测，零 LLM。",
-            tool_names=["plugin_memory_store", "plugin_memory_recall", "plugin_memory_stats"],
-            source="distill + Ollama(nomic-embed-text)",
-        ),
         DiagramPlugin(
             id="diagrams",
             name="架构图",
@@ -1410,14 +1537,105 @@ def build_plugins():
             dist_rel=os.path.join("drawdb", "dist"),
             tools=["plugin_open_drawdb"],
         ),
-        PendingPlugin(
-            id="supermemory",
-            name="超级记忆引擎",
-            category="记忆",
-            description="自动抽事实、建画像、处理矛盾与过期遗忘。",
-            reason="已装依赖，但需独立后端/数据库，暂用 distill 覆盖本地记忆",
-        ),
     ]
+    return builtin + _load_external_specs(PLUGIN_LIB)
+
+
+class ExternalPlugin(PluginSpec):
+    """plugins/ext/*.py 里加载的用户插件。
+
+    模块约定（除 PLUGIN / TOOLS 外都可选）：
+
+        PLUGIN = {"id": "my_plugin", "name": "我的插件",
+                  "category": "工具", "description": "做点什么"}
+        TOOLS  = [{"name": "my_tool", "description": "给模型看的说明",
+                   "func": my_func, "json_visible": False, "tags": ("关键词",)}]
+
+        def ready():  return True        # 可选，缺省视为就绪
+        def status(): return "就绪"       # 可选
+
+    加载失败（语法错、字段缺、func 不可调用）会被静默跳过，不影响内置插件。
+    """
+
+    def __init__(self, meta, tools, module):
+        super().__init__(
+            id=str(meta["id"]),
+            name=str(meta.get("name") or meta["id"]),
+            category=str(meta.get("category") or "扩展"),
+            description=str(meta.get("description") or ""),
+            tool_names=[str(t["name"]) for t in tools],
+            source=str(meta.get("source") or "ext"),
+        )
+        self._module = module
+        self._tools = tools
+
+    def ready(self):
+        fn = getattr(self._module, "ready", None)
+        if callable(fn):
+            try:
+                return bool(fn())
+            except Exception:
+                return False
+        return True
+
+    def status(self):
+        fn = getattr(self._module, "status", None)
+        if callable(fn):
+            try:
+                return str(fn())
+            except Exception as e:
+                return f"状态检查失败：{e}"
+        return "就绪" if self.ready() else "未就绪"
+
+
+def _load_external_specs(lib_dir):
+    """扫 ext 目录下的 *.py，按约定转成 ExternalPlugin。
+
+    两个来源都扫：插件库的 ext，以及 app 自带的 plugins/ext（放示例和随仓库分发的插件）。
+    去重按 id，先扫插件库、再扫 app 目录。
+    """
+    roots = []
+    for r in (os.path.join(lib_dir, "ext"), os.path.join(_APP_DIR, "plugins", "ext")):
+        r = os.path.abspath(r)
+        if r not in roots and os.path.isdir(r):
+            roots.append(r)
+    if not roots:
+        return []
+    out, seen = [], set()
+    for ext in roots:
+        for fname in sorted(os.listdir(ext)):
+            if not fname.endswith(".py") or fname.startswith("_"):
+                continue
+            path = os.path.join(ext, fname)
+            modname = "alicore_ext_" + os.path.splitext(fname)[0]
+            try:
+                mspec = importlib.util.spec_from_file_location(modname, path)
+                if mspec is None or mspec.loader is None:
+                    continue
+                mod = importlib.util.module_from_spec(mspec)
+                mspec.loader.exec_module(mod)
+            except Exception:
+                continue
+            meta = getattr(mod, "PLUGIN", None)
+            tools = getattr(mod, "TOOLS", None)
+            if not isinstance(meta, dict) or not isinstance(tools, (list, tuple)):
+                continue
+            pid = str(meta.get("id") or "").strip()
+            if not pid or pid in seen:
+                continue
+            valid = []
+            for t in tools:
+                if not isinstance(t, dict):
+                    continue
+                name = str(t.get("name") or "").strip()
+                if not name or not callable(t.get("func")):
+                    continue
+                valid.append(t)
+            if not valid:
+                continue
+            seen.add(pid)
+            out.append(ExternalPlugin(meta, valid, mod))
+    return out
 
 
 # ------------------------------------------------------------------ 管理器
@@ -1729,6 +1947,19 @@ class PluginManager:
             tags=("白板", "草图", "流程图", "excalidraw", "画图", "手绘"),
             enabled=self.is_enabled("excalidraw"),
         )
+        # 外部插件：plugins/ext/*.py 里声明的工具在这里动态注册
+        for spec in self.specs.values():
+            if not isinstance(spec, ExternalPlugin):
+                continue
+            for t in spec._tools:
+                registry.register(
+                    str(t["name"]),
+                    str(t.get("description") or spec.description or spec.name),
+                    t["func"],
+                    json_visible=bool(t.get("json_visible", False)),
+                    tags=tuple(t.get("tags") or ()),
+                    enabled=self.is_enabled(spec.id),
+                )
         return registry
 
 
