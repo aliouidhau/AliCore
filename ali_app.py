@@ -572,6 +572,14 @@ class Api:
         auto = self._agent._char_budget() if hasattr(self._agent, "_char_budget") else 0
         return {"ok": True, "history_char_budget": v, "effective": auto}
 
+    def set_name(self, name=""):
+        """助手名字。空 = 不派名字，让模型自己长。只进 system，不改窗口标题。"""
+        n = (name or "").strip()[:32]
+        cfg = self._agent.config
+        cfg.set_many(assistant_name=n)
+        cfg.save()
+        return {"ok": True, "assistant_name": n}
+
     def set_search(self, provider="", key=""):
         """配联网搜索。key 只进 secrets.json，前端只拿 has_search_key。"""
         if getattr(self, "safe_mode", False):

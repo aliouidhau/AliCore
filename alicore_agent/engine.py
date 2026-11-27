@@ -1299,14 +1299,19 @@ class BaseStationAgent:
         return pin, rest
 
     def _persona(self):
-        """人设从配置来；没配就用默认。
+        """人设从配置来，但**不往 prompt 里硬绑名字**。
 
-        之前这里是硬编码串，设置里存的 system_prompt 从来没被读过——
-        用户改了人设，引擎照旧用默认，改了个寂寞。空字符串不能覆盖默认，
-        否则会把阿鲤的人格抹成一张白纸。
+        顺序：自定义 system_prompt > 名字 + 默认人格 > 默认人格。
+        默认人格不带「阿鲤」——开源版给别人用，有人想叫大肥鱼、有人想叫别的。
+        名字只在他自己填了 assistant_name 时才出现，空着就不派名字。
         """
-        return ((self.config.get("system_prompt") or "").strip()
-                or prompts.DEFAULT_PERSONA)
+        custom = (self.config.get("system_prompt") or "").strip()
+        if custom:
+            return custom
+        name = (self.config.get("assistant_name") or "").strip()
+        if name:
+            return f"你叫{name}。" + prompts.DEFAULT_PERSONA
+        return prompts.DEFAULT_PERSONA
 
     def _pin_memory(self):
         """常驻记忆。拼进 system 的人设区（稳定段），跨轮吃前缀缓存，成本约 1/10。

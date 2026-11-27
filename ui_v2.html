@@ -2048,6 +2048,14 @@ button.paint-mode-chip:hover, button.paint-mode-chip.active { color:#dffff4; bor
     <div class="settings-group">
       <div class="settings-caption">CHAT // 对话</div>
       <div class="setting-row">
+        <div><label for="prefAssistantName">助手名字</label><small>留空就不派名字，让它自己长；填了只影响它怎么称呼自己</small></div>
+        <input class="setting-input" type="text" id="prefAssistantName" placeholder="留空 = 不取名" maxlength="32" style="width:180px">
+      </div>
+      <div class="setting-row">
+        <div><span class="setting-name">应用名字</span><small id="nameState">—</small></div>
+        <button class="btn mini" onclick="saveName()">保存名字</button>
+      </div>
+      <div class="setting-row">
         <div><span class="setting-name">显示工具轨迹</span><small>显示她读文件、搜索和执行工具的过程</small></div>
         <input class="setting-check" type="checkbox" id="prefTraces">
       </div>
@@ -3070,6 +3078,12 @@ function openSettings() {
       if (sk) sk.textContent = (c && c.has_search_key)
         ? ('已配置：' + (c.search_provider || '—') + '，留空不改')
         : '未配置（填 key 才能搜）';
+      const nm = document.getElementById('prefAssistantName');
+      if (nm) nm.value = (c && c.assistant_name) || '';
+      const ns = document.getElementById('nameState');
+      if (ns) ns.textContent = (c && c.assistant_name)
+        ? ('她会自称：' + c.assistant_name)
+        : '不派名字（默认）';
     }).catch(() => {});
   }
   showModal(settingsModal);
@@ -3083,6 +3097,17 @@ function saveCtxBudget() {
     const eff = document.getElementById('ctxEffective');
     if (eff) eff.textContent = v > 0 ? (v.toLocaleString() + ' 字符（手动）') : ('自动，当前约 ' + (r.effective || 0).toLocaleString() + ' 字符');
     toast('上下文预算已更新');
+  }).catch(() => toast('保存失败'));
+}
+function saveName() {
+  const el = document.getElementById('prefAssistantName');
+  const name = ((el && el.value) || '').trim();
+  if (!window.pywebview || !window.pywebview.api) return;
+  window.pywebview.api.set_name(name).then(r => {
+    if (!r || !r.ok) { toast('保存失败'); return; }
+    const st = document.getElementById('nameState');
+    if (st) st.textContent = name ? ('她会自称：' + name) : '不派名字（默认）';
+    toast(name ? '名字已更新' : '已清空名字');
   }).catch(() => toast('保存失败'));
 }
 function saveSearch() {

@@ -21,6 +21,7 @@ DEFAULT_CONFIG = {
     "current_provider": "",     # 当前用的服务商 id
     "current_model": "",        # 当前用的模型名
     "system_prompt": "",
+    "assistant_name": "",        # 助手叫什么；空 = 不给他派名字，让模型自己长
     "agent_mode": "json",
     "max_rounds": 6,
     "max_steps": 4,
@@ -282,6 +283,7 @@ class Config:
             "context_window": self.get("context_window") or 131072,
             "search_provider": self.get("search_provider") or "",
             "has_search_key": bool(self.data.get("search_key")),
+            "assistant_name": self.get("assistant_name") or "",
         }
 
     def describe_secrets(self):
