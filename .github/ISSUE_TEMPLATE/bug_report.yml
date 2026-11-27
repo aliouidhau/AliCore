@@ -1,0 +1,50 @@
+name: 报个 Bug
+description: 用不了、报错、界面不对，都走这里
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        先确认一下：你用的是打好的 exe，还是从源码跑的？这两个排查路径不一样。
+
+  - type: dropdown
+    id: run_mode
+    attributes:
+      label: 怎么运行的
+      options:
+        - 双击 阿鲤.exe（打包版）
+        - python ali_app.py（源码）
+        - 其他
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: 版本
+      description: 在哪下载的、大概是哪天，能写版本号更好
+
+  - type: textarea
+    id: what
+    attributes:
+      label: 发生了什么
+      description: 越具体越好，报错文字直接整段贴进来
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 怎么复现
+      placeholder: |
+        1. 打开 ...
+        2. 点 ...
+        3. 然后 ...
+
+  - type: textarea
+    id: env
+    attributes:
+      label: 环境
+      placeholder: |
+        Windows 11 / Python 3.12 / 有没有装 Docker / 模型接的哪家

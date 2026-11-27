@@ -1,0 +1,29 @@
+name: 提个想法
+description: 想要的功能、插件、界面改进
+title: "[想法] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: 你想要什么
+      description: 描述你希望它能做到的事
+    validations:
+      required: true
+
+  - type: textarea
+    id: why
+    attributes:
+      label: 为什么
+      description: 现在哪里别扭，或者你想拿它干什么
+
+  - type: dropdown
+    id: kind
+    attributes:
+      label: 属于哪类
+      options:
+        - 核心功能
+        - 插件（想自己写）
+        - 界面
+        - 文档
+        - 其他
