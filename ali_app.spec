@@ -120,7 +120,7 @@ if os.path.isdir(_src_plugins):
         dirs_exist_ok=True,
     )
 
-for _name in ("config.example.json", "README.md"):
+for _name in ("config.example.json", "README.md", "CHANGELOG.md"):
     _src = os.path.join(_HERE, _name)
     if os.path.exists(_src):
         shutil.copy2(_src, os.path.join(_dist_root, _name))
