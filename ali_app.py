@@ -521,11 +521,12 @@ class Api:
                 models.append(mid)
         return models
 
-    def add_provider(self, name="", base_url="", key="", models=""):
+    def add_provider(self, name="", base_url="", key="", models="", vision_model=""):
         """接入：先真的拉到模型，再落盘。拉不到就不算接入成功。
 
         models 是用户手填的模型名（逗号/空格分隔），给那些不实现 /v1/models 的
         中转站留后路：手填了就跳过自动读取。
+        vision_model 是识图专用模型（可选）；留空就跟随当前对话模型。
         """
         if getattr(self, "safe_mode", False):
             return {"ok": False, "error": "🔒 安全模式已禁用密钥写入"}
@@ -548,7 +549,14 @@ class Api:
         if not models_list:
             return {"ok": False, "error": "这个服务商返回了空的模型列表；可以在「模型名」里手填"}
         cfg = self._agent.config
-        entry = cfg.set_provider({"name": name, "base_url": base, "models": models_list}, k)
+        # 同一家（同地址同名字）重复接入就更新那一条，不再堆重复条目
+        display = (name or "").strip() or "未命名服务商"
+        existing = next((p for p in cfg.providers()
+                         if p.get("base_url") == base and (p.get("name") or "") == display), None)
+        provider = dict(existing or {})
+        provider.update({"name": display, "base_url": base,
+                         "models": models_list, "vision_model": vision_model})
+        entry = cfg.set_provider(provider, k)
         return {"ok": True, "provider": entry, "models": models_list,
                 "message": f"已接入 {entry['name']}，{len(models_list)} 个模型"}
 

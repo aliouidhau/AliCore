@@ -2002,6 +2002,8 @@ button.paint-mode-chip:hover, button.paint-mode-chip.active { color:#dffff4; bor
     <input type="password" id="provKeyInput" placeholder="sk-...">
     <label for="provModelsInput">模型名（可选，逗号分隔）</label>
     <input type="text" id="provModelsInput" placeholder="留空就自动读取；中转站不给 /v1/models 时手填，如 gpt-4o, claude-sonnet">
+    <label for="provVisionInput">识图模型（可选）</label>
+    <input type="text" id="provVisionInput" placeholder="如 gpt-4o / glm-4v；留空就跟随当前对话模型">
     <div class="api-error" id="apiError" hidden></div>
     <div class="modal-actions"><button class="btn" onclick="closeApi()">取消</button><button class="btn primary" onclick="connectProvider()">接入并读取模型</button></div>
     <div class="provider-list" id="providerList"></div>
@@ -2946,6 +2948,7 @@ const provNameInput = $('#provNameInput');
 const provBaseInput = $('#provBaseInput');
 const provKeyInput = $('#provKeyInput');
 const provModelsInput = $('#provModelsInput');
+const provVisionInput = $('#provVisionInput');
 const apiError = $('#apiError');
 const providerList = $('#providerList');
 const DEFAULT_PREFS = { character:true, fontSize:'13', motion:true, traces:true, sendMode:'enter' };
@@ -3080,6 +3083,7 @@ function openApi() {
   provBaseInput.value = '';
   provKeyInput.value = '';
   provModelsInput.value = '';
+  provVisionInput.value = '';
   apiError.hidden = true;
   renderProviderList();
   showModal(apiModal);
@@ -3106,13 +3110,14 @@ function connectProvider() {
   const base = provBaseInput.value.trim();
   const key = provKeyInput.value.trim();
   const manual = provModelsInput.value.trim();
+  const visionModel = provVisionInput.value.trim();
   apiError.hidden = true;
   if (!base) { showApiError('Base URL 不能为空'); return; }
   if (!key) { showApiError('API Key 不能为空'); return; }
   const btn = document.querySelector('#apiModal .btn.primary');
   const old = btn ? btn.textContent : '';
   if (btn) { btn.disabled = true; btn.textContent = '正在连接…'; }
-  window.pywebview.api.add_provider(name, base, key, manual).then(res => {
+  window.pywebview.api.add_provider(name, base, key, manual, visionModel).then(res => {
     if (!res || !res.ok) {
       if (btn) { btn.disabled = false; btn.textContent = old; }
       showApiError((res && res.error) || '接入失败');
