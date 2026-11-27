@@ -462,6 +462,11 @@ class Api:
             view["history_char_budget_effective"] = 0
         # 设置面板的「关于」显示版本，方便别人报 bug 时说清楚自己用的是哪版
         view["version"] = APP_VERSION
+        # 桌面启动图标是否已存在，设置面板据此显示「已创建 / 未创建」
+        try:
+            view["shortcut_exists"] = os.path.exists(os.path.join(_desktop_dir(), SHORTCUT_NAME))
+        except Exception:
+            view["shortcut_exists"] = False
         return view
 
     def get_ui_prefs(self):
@@ -602,6 +607,22 @@ class Api:
         cfg.set_many(reasoning_effort=e)
         cfg.save()
         return {"ok": True, "reasoning_effort": e}
+
+    def shortcut_exists(self):
+        """桌面是否已经有启动图标。"""
+        try:
+            return {"ok": True, "exists": os.path.exists(os.path.join(_desktop_dir(), SHORTCUT_NAME))}
+        except Exception:
+            return {"ok": True, "exists": False}
+
+    def create_desktop_shortcut(self):
+        """在桌面创建或重建启动图标。"""
+        try:
+            lnk = _make_desktop_shortcut()
+            return {"ok": True, "path": lnk, "msg": "已在桌面创建启动图标"}
+        except Exception as e:
+            _log(f"[快捷方式] 创建失败: {e}")
+            return {"ok": False, "error": f"{type(e).__name__}: {e}"}
 
     def set_search(self, provider="", key=""):
         """配联网搜索。key 只进 secrets.json，前端只拿 has_search_key。"""
@@ -2527,6 +2548,78 @@ def _ensure_visible(t0=0.0):
                 ctypes.windll.user32.ShowWindow(hwnd, 1)
 
 
+SHORTCUT_NAME = "阿鲤.lnk"
+
+
+def _desktop_dir():
+    """取当前用户的桌面目录，兼容 OneDrive 重定向。"""
+    try:
+        buf = ctypes.create_unicode_buffer(260)
+        # CSIDL_DESKTOPDIRECTORY = 0x0010
+        ctypes.windll.shell32.SHGetFolderPathW(None, 0x0010, None, 0, buf)
+        if buf.value:
+            return buf.value
+    except Exception:
+        pass
+    return os.path.join(os.path.expanduser("~"), "Desktop")
+
+
+def _shortcut_plan():
+    """返回 (target, arguments, workdir, icon)。打包版直接指向 exe。"""
+    icon = os.path.join(RES_DIR, "assets", "ali.ico")
+    if getattr(sys, "frozen", False):
+        return sys.executable, "", APP_DIR, icon
+    py = sys.executable
+    pyw = py.lower().replace("python.exe", "pythonw.exe")
+    if pyw != py.lower() and os.path.exists(pyw):
+        py = pyw
+    script = os.path.join(APP_DIR, "ali_app.py")
+    return py, f'"{script}"', APP_DIR, icon
+
+
+def _make_desktop_shortcut():
+    """用 WScript.Shell 生成 .lnk，避开对 pywin32 的依赖。"""
+    lnk = os.path.join(_desktop_dir(), SHORTCUT_NAME)
+    target, args, workdir, icon = _shortcut_plan()
+
+    def q(s):
+        return str(s).replace("'", "''")
+
+    ps = (
+        "$ws = New-Object -ComObject WScript.Shell;"
+        f"$s = $ws.CreateShortcut('{q(lnk)}');"
+        f"$s.TargetPath = '{q(target)}';"
+        f"$s.Arguments = '{q(args)}';"
+        f"$s.WorkingDirectory = '{q(workdir)}';"
+        f"$s.IconLocation = '{q(icon)}';"
+        "$s.Description = '阿鲤 AliCore';"
+        "$s.Save()"
+    )
+    proc = subprocess.run(
+        ["powershell", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
+         "-Command", ps],
+        creationflags=0x08000000, timeout=25, capture_output=True,
+    )
+    if not os.path.exists(lnk):
+        detail = (proc.stderr or b"").decode("utf-8", "ignore").strip()[:120]
+        raise RuntimeError(detail or "未生成 .lnk")
+    return lnk
+
+
+def _ensure_desktop_shortcut():
+    """免安装包第一次启动时在桌面放一个图标；失败不打扰用户。"""
+    if not getattr(sys, "frozen", False):
+        return
+    try:
+        lnk = os.path.join(_desktop_dir(), SHORTCUT_NAME)
+        if os.path.exists(lnk):
+            return
+        _make_desktop_shortcut()
+        _log("[快捷方式] 已在桌面创建启动图标")
+    except Exception as e:
+        _log(f"[快捷方式] 自动创建失败（忽略）: {e}")
+
+
 def _parse_args(argv=None):
     p = argparse.ArgumentParser(description="阿鲤桌面端")
     p.add_argument("--safe-mode", action="store_true", help="只读安全模式：禁用代码执行、写文件和插件工具")
@@ -2539,6 +2632,7 @@ def start_app(argv=None):
     args = _parse_args(argv)
     _apply_paths(APP_DIR, args.data_dir or None, args.runtime_dir or None)
     _seed_content()
+    _ensure_desktop_shortcut()
     _resolve_window_identity()
 
     _t0 = time.time()

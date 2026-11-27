@@ -2097,6 +2097,17 @@ button.paint-mode-chip:hover, button.paint-mode-chip.active { color:#dffff4; bor
     </div>
 
     <div class="settings-group">
+      <div class="settings-caption">SHORTCUT // 启动图标</div>
+      <div class="setting-row">
+        <div>
+          <span class="setting-name">桌面图标</span>
+          <small id="shortcutState">—</small>
+        </div>
+        <button class="btn mini" onclick="createShortcut()">在桌面创建</button>
+      </div>
+    </div>
+
+    <div class="settings-group">
       <div class="settings-caption">SEARCH // 联网搜索</div>
       <div class="setting-row">
         <div><label for="prefSearchProvider">搜索服务商</label><small>不配也能用，只是模型调不到 web_search</small></div>
@@ -3119,6 +3130,8 @@ function openSettings() {
       if (rs) rs.textContent = (c && c.reasoning_effort)
         ? ('当前：' + c.reasoning_effort)
         : '不设（不发送该参数）';
+      const sc = document.getElementById('shortcutState');
+      if (sc) sc.textContent = (c && c.shortcut_exists) ? '已创建' : '未创建，可点右侧按钮';
       const ver = document.getElementById('appVersion');
       if (ver) ver.textContent = 'v' + ((c && c.version) || '—') + ' · 开源源码版';
     }).catch(() => {});
@@ -3157,6 +3170,20 @@ function saveReasoning() {
     if (rs) rs.textContent = v ? ('当前：' + v) : '不设（不发送该参数）';
     toast(v ? ('推理强度：' + v) : '已关闭推理强度');
   }).catch(() => toast('保存失败'));
+}
+function createShortcut() {
+  if (!window.pywebview || !window.pywebview.api) return;
+  const st = document.getElementById('shortcutState');
+  if (st) st.textContent = '正在创建…';
+  window.pywebview.api.create_desktop_shortcut().then(r => {
+    if (!r || !r.ok) {
+      if (st) st.textContent = '创建失败';
+      toast((r && r.error) || '创建失败');
+      return;
+    }
+    if (st) st.textContent = '已创建';
+    toast('桌面图标已创建');
+  }).catch(() => { if (st) st.textContent = '创建失败'; toast('创建失败'); });
 }
 function saveSearch() {
   const prov = (document.getElementById('prefSearchProvider') || {}).value || '';
