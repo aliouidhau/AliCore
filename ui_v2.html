@@ -519,14 +519,11 @@
   .plugin-item .p-status.ready { color:var(--online); }
   .plugin-item .p-status.pending { color:var(--accent); }
   .plugin-item .p-toggle { flex-shrink:0; margin-top:2px; }
-  .plugin-item input.p-check { appearance:none; width:34px; height:18px; padding:0; margin:0; border:1px solid var(--line-strong); border-radius:12px; background:#172128; position:relative; cursor:pointer; transition:background-color .16s ease, border-color .16s ease; }
-  .plugin-item input.p-check::after { content:""; position:absolute; left:3px; top:3px; width:10px; height:10px; border-radius:50%; background:var(--muted); transition:transform .18s cubic-bezier(.2,.8,.2,1), background-color .16s ease; will-change:transform; }
-  .plugin-item input.p-check:checked { background:var(--accent-dim); border-color:var(--accent); }
-  .plugin-item input.p-check:checked::after { transform:translateX(16px); background:var(--accent-bright); }
-  .plugin-item input.p-check:disabled { cursor:not-allowed; opacity:.45; }
   .plugin-item .p-arm { flex-shrink:0; margin-top:2px; }
   .plugin-item .p-arm-btn { font-size:10px; padding:5px 9px; border:1px solid var(--line-strong); border-radius:3px; background:transparent; color:var(--text-soft); cursor:pointer; white-space:nowrap; }
   .plugin-item .p-arm-btn:hover { border-color:var(--accent); color:var(--accent-bright); }
+  .plugin-item .p-arm-btn:disabled { opacity:.4; cursor:not-allowed; border-style:dashed; }
+  .plugin-item .p-arm-btn:disabled:hover { border-color:var(--line-strong); color:var(--text-soft); }
   .armed-bar { padding:0 10px 6px; }
   .armed-chip { display:inline-flex; align-items:center; gap:8px; padding:5px 8px; border:1px solid var(--accent); border-radius:3px; background:var(--accent-dim); font-size:10px; color:var(--text); }
   .armed-chip .armed-kicker { font:8px var(--mono); letter-spacing:1px; color:var(--accent-bright); }
@@ -3156,19 +3153,14 @@ function refreshPlugins() {
           <div class="p-desc">${escHtml(p.description)}</div>
           <div class="p-status ${p.ready ? 'ready' : 'pending'}">${p.ready ? '● ' : '◇ '}${escHtml(p.status)}</div>
         </div>
-        <div class="p-arm">${p.ready ? ('<button class="p-arm-btn" data-pid="' + escHtml(p.id) + '" data-pname="' + escHtml(p.name) + '" onclick="armPlugin(this.dataset.pid, this.dataset.pname)">带入 →</button>') : ''}</div>
+        <div class="p-arm">${p.ready
+          ? ('<button class="p-arm-btn" data-pid="' + escHtml(p.id) + '" data-pname="' + escHtml(p.name) + '" onclick="armPlugin(this.dataset.pid, this.dataset.pname)">带入 →</button>')
+          : ('<button class="p-arm-btn" disabled title="' + escHtml(p.status) + '">未就绪</button>')}</div>
       </div>`).join('');
   }).catch(() => {
     $('#pluginList').innerHTML = '<div class="plugin-item disabled"><div class="p-main"><div class="p-title"><strong>读取插件失败</strong></div><div class="p-desc">请重启阿鲤后再试。</div></div></div>';
     $('#pluginCount').textContent = 'ERROR';
   });
-}
-function togglePlugin(id, checked) {
-  if (!window.pywebview || !window.pywebview.api) return;
-  window.pywebview.api.set_plugin(id, checked).then(res => {
-    toast(res && res.ok ? res.msg : (res && res.msg || '切换失败'));
-    refreshPlugins();
-  }).catch(() => toast('切换失败'));
 }
 function armPlugin(id, name) {
   armedPlugin = { id: id, name: name };

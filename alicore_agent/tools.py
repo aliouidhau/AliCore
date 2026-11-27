@@ -209,21 +209,35 @@ class ToolRegistry:
         query 传了 → 基线工具全挂，带 tags 的按关键词决定挂不挂。
         语义上等于：说到了才给看。看不见的工具模型不会去调，也就不会占 token。
         force_names → 用户手动「带入对话」的插件工具：无视开关和 tags，本轮直接挂上。
-        插件的 enabled=False 时，无论 json_visible 还是 tags 命中都不给。
         安全模式 → 只挂 allowlist，force_names 也不能把它撬开。
         """
         forced = set(force_names or ())
+
+        def _allowed_for_force(t):
+            """force 绕过 enabled 开关，但绕不过安全模式。"""
+            if self.safe_mode and t.name not in SAFE_MODE_ALLOW:
+                return False
+            return True
+
         if query is None:
-            return [t.json_schema() for t in self._tools.values()
-                    if self.allowed(t) and (t.json_visible or t.name in forced)]
+            out = []
+            for t in self._tools.values():
+                if t.name in forced:
+                    if _allowed_for_force(t):
+                        out.append(t.json_schema())
+                    continue
+                if self.allowed(t) and t.json_visible:
+                    out.append(t.json_schema())
+            return out
 
         low = (query or "").lower()
         out = []
         for t in self._tools.values():
-            if not self.allowed(t):
-                continue
             if t.name in forced:
-                out.append(t.json_schema())
+                if _allowed_for_force(t):
+                    out.append(t.json_schema())
+                continue
+            if not self.allowed(t):
                 continue
             if t.json_visible:
                 out.append(t.json_schema())
@@ -231,9 +245,18 @@ class ToolRegistry:
                 out.append(t.json_schema())
         return out
 
-    def code_prompt(self):
-        """CodeAgent 的提示词里那一块「可用函数」。"""
-        return "\n".join(t.code_signature() for t in self._tools.values() if self.allowed(t))
+    def code_prompt(self, force_names=()):
+        """CodeAgent 的提示词里那一块「可用函数」。带上 force_names 才认得导入的插件。"""
+        forced = set(force_names or ())
+        lines = []
+        for t in self._tools.values():
+            if t.name in forced:
+                if self.safe_mode and t.name not in SAFE_MODE_ALLOW:
+                    continue
+                lines.append(t.code_signature())
+            elif self.allowed(t):
+                lines.append(t.code_signature())
+        return "\n".join(lines)
 
     def _emit_audit(self, payload):
         if not self.audit:

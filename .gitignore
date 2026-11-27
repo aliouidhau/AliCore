@@ -31,6 +31,13 @@ test_selftest.pptx
 # ---- 语音：音频二进制不进仓库，用 tools/ 自己合成 ----
 assets/voice/
 
+# ---- 插件库：体积大（含 node_modules，实测 4.4GB），不进仓库 ----
+plugins/*
+!plugins/README.md
+
+# ---- 本地启动脚本：带本机路径，不进仓库 ----
+启动-带插件.bat
+
 # ---- 本地环境 ----
 .venv/
 venv/

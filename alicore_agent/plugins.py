@@ -33,7 +33,13 @@ def _runtime_root():
     return os.path.join(base, "AliCore", "_runtime")
 
 
-PLUGIN_LIB = os.path.join(_APP_DIR, "plugins")
+def _env_dir(name, default):
+    """环境变量优先；返回绝对路径，不校验存在性（由各插件自己报告未就绪）。"""
+    value = os.environ.get(name)
+    return os.path.abspath(value) if value else os.path.abspath(default)
+
+
+PLUGIN_LIB = _env_dir("ALICORE_PLUGIN_LIB", os.path.join(_APP_DIR, "plugins"))
 OUTPUT_DIR = os.path.join(_APP_DIR, "output", "plugins")
 STATE_FILE = os.path.join(_APP_DIR, "plugins_state.json")
 MAX_READ_CHARS = 12000
@@ -51,8 +57,27 @@ def configure_storage(data_dir=None):
 OLLAMA_URL = "http://127.0.0.1:11434"
 DOC_OCR_MODEL = "deepseek-ocr"
 
-SW_EXE = r"D:\sw2020\SOLIDWORKS\SLDWORKS.exe"
-SW_SIDECAR_DIR = os.path.join(_APP_DIR, "plugins", "Millwright", "sidecar")
+
+def _find_sw_exe():
+    """SolidWorks 可执行文件。环境变量优先，其次常见安装位，都没有就留空。
+
+    不再把 D:\\sw2020 这类个人路径写死在开源版里——别人机器上没有这个目录。
+    """
+    env = os.environ.get("ALICORE_SW_EXE")
+    if env and os.path.exists(env):
+        return os.path.abspath(env)
+    for cand in (
+        r"C:\Program Files\SOLIDWORKS Corp\SOLIDWORKS\SLDWORKS.exe",
+        r"C:\Program Files (x86)\SOLIDWORKS Corp\SOLIDWORKS\SLDWORKS.exe",
+        r"D:\sw2020\SOLIDWORKS\SLDWORKS.exe",
+    ):
+        if os.path.exists(cand):
+            return cand
+    return ""
+
+
+SW_EXE = _find_sw_exe()
+SW_SIDECAR_DIR = os.path.join(PLUGIN_LIB, "Millwright", "sidecar")
 
 
 # ------------------------------------------------------------------ 工具函数
@@ -897,19 +922,27 @@ def _sw_client():
     global _SW_PROC
     if _SW_PROC is not None and _SW_PROC.poll() is None:
         return _SW_PROC
+    if not os.path.isdir(SW_SIDECAR_DIR):
+        raise RuntimeError(
+            "Millwright sidecar 目录不存在：" + SW_SIDECAR_DIR
+            + "（检查 ALICORE_PLUGIN_LIB 是否指向插件库）"
+        )
     env = dict(os.environ)
     env["PYTHONPATH"] = SW_SIDECAR_DIR + os.pathsep + env.get("PYTHONPATH", "")
-    proc = subprocess.Popen(
-        [sys.executable, "-m", "sw_agent"],
-        cwd=SW_SIDECAR_DIR,
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        env=env,
-    )
+    try:
+        proc = subprocess.Popen(
+            [sys.executable, "-m", "sw_agent"],
+            cwd=SW_SIDECAR_DIR,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            env=env,
+        )
+    except Exception as e:
+        raise RuntimeError(f"拉起 sidecar 失败：{e}")
     try:
         proc.stdout.readline()  # ready 帧，先吞掉
     except Exception:
@@ -922,7 +955,10 @@ def _sw_rpc(method, params=None, timeout=180):
     """往 sidecar 发一行 JSON-RPC，等同一个 id 且带 ok 的帧回来。"""
     global _SW_PROC
     with _SW_LOCK:
-        proc = _sw_client()
+        try:
+            proc = _sw_client()
+        except RuntimeError as e:
+            return {"ok": False, "error": str(e), "code": "NO_SIDECAR"}
         req = {"id": int(time.time() * 1000), "method": method, "params": params or {}}
         try:
             proc.stdin.write(json.dumps(req, ensure_ascii=False) + "\n")
@@ -952,7 +988,10 @@ def _sw_rpc(method, params=None, timeout=180):
 
 def _sw_call(name, args):
     if not os.path.exists(SW_EXE):
-        return "❌ 未检测到 SolidWorks，插件尚未就绪。"
+        return "❌ 未检测到 SolidWorks，插件尚未就绪。设 ALICORE_SW_EXE 指向 SLDWORKS.exe。"
+    if not os.path.isdir(SW_SIDECAR_DIR):
+        return ("❌ 缺少 Millwright sidecar：" + SW_SIDECAR_DIR
+                + "\n把插件库放到 app/plugins，或设 ALICORE_PLUGIN_LIB 指向插件库根目录。")
     r = _sw_rpc("call", {"name": name, "args": args})
     if not r.get("ok"):
         code = r.get("code")
@@ -960,6 +999,7 @@ def _sw_call(name, args):
         hint = {
             "NO_CONNECTION": "SolidWorks 没在运行，请先手动打开 SolidWorks 再试。",
             "NO_DOCUMENT": "SolidWorks 里没有打开的文档，先新建或打开一个零件。",
+            "NO_SIDECAR": "sidecar 未就绪，检查插件库路径与 ALICORE_PLUGIN_LIB。",
         }.get(code, "")
         msg = f"❌ {name} 失败（{code or '未知错误'}）：{err}"
         return msg + (f"｜{hint}" if hint else "")
@@ -1255,12 +1295,19 @@ class WebAppPlugin(PluginSpec):
 
 class SolidWorksPlugin(PluginSpec):
     def ready(self):
-        return (os.path.exists(SW_EXE)
+        """三样齐了才算就绪：exe、sidecar、COM 桥。
+
+        旧版只看 exe 在不在，结果侧栏显示「就绪」，点了却因为 sidecar 目录缺失
+        直接报 Popen 失败——这种假阳性比诚实地说「未就绪」更误导人。
+        """
+        return (bool(SW_EXE) and os.path.exists(SW_EXE)
+                and os.path.isdir(SW_SIDECAR_DIR)
                 and importlib.util.find_spec("win32com") is not None)
 
     def status(self):
         parts = []
-        parts.append("SolidWorks " + ("已装" if os.path.exists(SW_EXE) else "未检测到"))
+        parts.append("SolidWorks " + ("已装" if SW_EXE and os.path.exists(SW_EXE) else "未检测到"))
+        parts.append("sidecar " + ("就绪" if os.path.isdir(SW_SIDECAR_DIR) else "缺失"))
         parts.append("pywin32 " + ("已装" if importlib.util.find_spec("win32com") else "未装"))
         return " / ".join(parts)
 

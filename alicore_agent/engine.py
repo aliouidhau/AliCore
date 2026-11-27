@@ -459,20 +459,17 @@ class BaseStationAgent:
         self._armed_tool_names = ()
         # 重复调用链：新的一轮用户输入到达时清空（对应 DSH 的「新用户消息清链」）
         self._repeat_chain = {"key": None, "count": 0}
-        armed_tools = []
         if plugin_id:
             spec = self.plugins.specs.get(plugin_id) if getattr(self, "plugins", None) else None
             if spec and spec.ready():
-                for name in spec.tool_names:
-                    tool = self.registry.get(name)
-                    if tool and not tool.enabled:
-                        tool.enabled = True
-                        armed_tools.append(tool)
+                # 不再临时改 tool.enabled：json_schemas/code_prompt 的 force_names 已经
+                # 能绕过开关，动全局状态反而容易在异常路径下漏恢复。
                 self._armed_plugin = spec
                 self._armed_tool_names = tuple(spec.tool_names)
                 self.events.emit("thought", label="插件已带入：" + spec.name)
             else:
-                self.events.emit("error", label="插件带入失败：" + str(plugin_id))
+                why = spec.status() if spec else "未知插件 id"
+                self.events.emit("error", label=f"插件带入失败：{plugin_id}（{why}）")
 
         mode = self.route(user_text)
         reply, ok = "", False
@@ -487,8 +484,6 @@ class BaseStationAgent:
         except Exception as e:
             reply, ok = self._format_error(e), False
         finally:
-            for tool in armed_tools:
-                tool.enabled = False
             self._armed_plugin = None
             self._armed_tool_names = ()
 
@@ -999,7 +994,7 @@ class BaseStationAgent:
     # ---------------- CodeAgent 通道 ----------------
     def _run_code(self, user_text, history, model_name=None):
         system = prompts.code_system(self._now(history, user_text), self._persona() + self._pin_memory(),
-                                     self.registry.code_prompt()) + self._plugin_note()
+                                     self.registry.code_prompt(force_names=self._armed_tool_names)) + self._plugin_note()
         limit = int(self.config.get("history_limit") or 0)
         messages = [{"role": "system", "content": system}]
         # 原来这里收了 history 却一次都没用——code 模式下她完全不记得刚才聊了什么，
