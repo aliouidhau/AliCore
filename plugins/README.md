@@ -35,7 +35,7 @@ Windows 永久生效：`setx ALICORE_PLUGIN_LIB "D:\你的路径\插件"`，重�
 | 变量 | 作用 | 不设的后果 |
 |---|---|---|
 | `ALICORE_PLUGIN_LIB` | 插件库根目录 | 默认 `app/plugins`，为空则大部分插件「未就绪」 |
-| `ALICORE_SW_EXE` | `SLDWORKS.exe` 路径 | 自动探 `Program Files` 两个常见位和 `D:\sw2020`，都没有就「未检测到」 |
+| `ALICORE_SW_EXE` | `SLDWORKS.exe` 路径 | 自动探 `Program Files` 两个常见位，再扫各盘根下的 `sw20XX` / `SOLIDWORKS` 目录；都没有就「未检测到」 |
 | `ALICORE_BLENDER_EXE` | `blender.exe` 路径 | 默认找 `<runtime>/blender/blender.exe`，没有就「Blender 未装」 |
 
 ## 自己写插件

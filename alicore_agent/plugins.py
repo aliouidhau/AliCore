@@ -59,9 +59,9 @@ DOC_OCR_MODEL = "deepseek-ocr"
 
 
 def _find_sw_exe():
-    """SolidWorks 可执行文件。环境变量优先，其次常见安装位，都没有就留空。
+    """SolidWorks 可执行文件。环境变量优先，其次常见安装位，再按盘符扫非常规安装目录。
 
-    不再把 D:\\sw2020 这类个人路径写死在开源版里——别人机器上没有这个目录。
+    开源版不写死任何个人路径：装在奇怪地方就用 ALICORE_SW_EXE 指过去。
     """
     env = os.environ.get("ALICORE_SW_EXE")
     if env and os.path.exists(env):
@@ -69,10 +69,24 @@ def _find_sw_exe():
     for cand in (
         r"C:\Program Files\SOLIDWORKS Corp\SOLIDWORKS\SLDWORKS.exe",
         r"C:\Program Files (x86)\SOLIDWORKS Corp\SOLIDWORKS\SLDWORKS.exe",
-        r"D:\sw2020\SOLIDWORKS\SLDWORKS.exe",
     ):
         if os.path.exists(cand):
             return cand
+    # 非标准安装目录（比如装在 D:\SolidWorks2020\SOLIDWORKS）：各盘根往下扫一层，认出 sw20XX / SOLIDWORKS 目录
+    for drive in ("C", "D", "E", "F"):
+        root = drive + ":\\"
+        if not os.path.isdir(root):
+            continue
+        try:
+            names = os.listdir(root)
+        except OSError:
+            continue
+        for name in names:
+            low = name.lower()
+            if low.startswith("sw20") or low == "solidworks":
+                exe = os.path.join(root, name, "SOLIDWORKS", "SLDWORKS.exe")
+                if os.path.exists(exe):
+                    return exe
     return ""
 
 
