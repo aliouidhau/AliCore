@@ -521,8 +521,12 @@ class Api:
                 models.append(mid)
         return models
 
-    def add_provider(self, name="", base_url="", key=""):
-        """接入：先真的拉到模型，再落盘。拉不到就不算接入成功。"""
+    def add_provider(self, name="", base_url="", key="", models=""):
+        """接入：先真的拉到模型，再落盘。拉不到就不算接入成功。
+
+        models 是用户手填的模型名（逗号/空格分隔），给那些不实现 /v1/models 的
+        中转站留后路：手填了就跳过自动读取。
+        """
         if getattr(self, "safe_mode", False):
             return {"ok": False, "error": "🔒 安全模式已禁用密钥写入"}
         base = (base_url or "").strip()
@@ -533,16 +537,20 @@ class Api:
         k = (key or "").strip()
         if not k:
             return {"ok": False, "error": "API Key 不能为空"}
+        manual = [m.strip() for m in re.split(r"[,，\s]+", models or "") if m.strip()]
+        fetched = []
         try:
-            models = self._models_of(base, k)
+            fetched = self._models_of(base, k)
         except RuntimeError as e:
-            return {"ok": False, "error": str(e)}
-        if not models:
-            return {"ok": False, "error": "这个服务商返回了空的模型列表"}
+            if not manual:
+                return {"ok": False, "error": str(e) + "；也可以在「模型名」里手填，跳过自动读取"}
+        models_list = manual or fetched
+        if not models_list:
+            return {"ok": False, "error": "这个服务商返回了空的模型列表；可以在「模型名」里手填"}
         cfg = self._agent.config
-        entry = cfg.set_provider({"name": name, "base_url": base, "models": models}, k)
-        return {"ok": True, "provider": entry, "models": models,
-                "message": f"已接入 {entry['name']}，{len(models)} 个模型"}
+        entry = cfg.set_provider({"name": name, "base_url": base, "models": models_list}, k)
+        return {"ok": True, "provider": entry, "models": models_list,
+                "message": f"已接入 {entry['name']}，{len(models_list)} 个模型"}
 
     def remove_provider(self, provider_id=""):
         pid = (provider_id or "").strip()

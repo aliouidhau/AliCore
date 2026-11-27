@@ -6,6 +6,7 @@
 """
 
 import json
+import re
 
 import requests
 
@@ -16,16 +17,23 @@ class LLMError(Exception):
     pass
 
 
+_VERSION_RE = re.compile(r"/v\d+(?:beta)?$", re.I)
+
+
 def chat_url(base_url):
     """把用户填的地址归一化成 /chat/completions。三种写法都认：
-    https://api.deepseek.com  /  .../v1  /  .../v1/chat/completions
+    域名、带版本段（/v1、/v3、/api/paas/v4）、直接给完整端点。
     """
     base = (base_url or "").strip().rstrip("/")
     if not base:
         return ""
     if base.endswith("/chat/completions"):
         return base
-    if base.endswith("/v1"):
+    if base.endswith("/models"):
+        base = base[: -len("/models")]
+    if base.endswith("/chat/completions"):
+        return base
+    if _VERSION_RE.search(base):
         return base + "/chat/completions"
     return base + "/v1/chat/completions"
 
@@ -36,7 +44,9 @@ def models_url(base_url):
         return ""
     if base.endswith("/chat/completions"):
         base = base[: -len("/chat/completions")]
-    if base.endswith("/v1"):
+    if base.endswith("/models"):
+        return base
+    if _VERSION_RE.search(base):
         return base + "/models"
     return base + "/v1/models"
 
