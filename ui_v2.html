@@ -798,7 +798,8 @@
   .lb-head { display:flex; align-items:center; gap:7px; font-size:9px; color:#cfe4e4; }
   .lb-index { font-family:var(--mono); font-size:7px; letter-spacing:1px; color:#e7bd67; border:1px solid rgba(231,189,103,.25); border-radius:4px; padding:1px 4px; flex:none; }
   .lb-title { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .lb-voice { margin-left:auto; font-family:var(--mono); font-size:7px; color:#6d8792; flex:none; }
+  .lb-voice { margin-left:auto; font-family:var(--mono); font-size:7px; color:#6d8792; flex:none; background:none; border:0; padding:2px 0; cursor:pointer; letter-spacing:.5px; }
+  .lb-voice:hover { color:var(--accent); }
   .lb-track { height:2px; margin-top:4px; border-radius:2px; background:rgba(140,180,180,.12); overflow:hidden; }
   .lb-track span { display:block; width:0; height:100%; border-radius:2px; background:linear-gradient(90deg,#e7bd67,#f4dfa8); transition:width .1s linear; }
   .lb-time { font-family:var(--mono); font-size:8px; color:#7d9095; flex:none; }
@@ -1354,8 +1355,8 @@
     display:none; position:fixed; inset:0; background:rgba(2,5,7,.84); z-index:1000;
     align-items:center; justify-content:center;
   }
-  /* TCC 门禁要压在代码靶场（同为 .modal，但它在 DOM 后面）之上 */
-  #tccModal { z-index:1100; }
+  /* TCC 门禁和语音面板要压在代码靶场（同为 .modal，但靶场在 DOM 后面）之上 */
+  #tccModal, #voiceModal { z-index:1100; }
   .modal-card {
     width:500px; max-width:calc(100vw - 40px); max-height:calc(100vh - 40px); overflow-y:auto; background:#0e161b;
     padding:24px; border-radius:7px; border:1px solid var(--line-strong);
@@ -1952,6 +1953,23 @@ button.paint-mode-chip:hover, button.paint-mode-chip.active { color:#dffff4; bor
   </div>
 </div>
 
+<!-- 语音音色：内置免费语音 + 自定义入口 -->
+<div id="voiceModal" class="modal">
+  <div class="modal-card">
+    <div class="eyebrow" style="margin-bottom:8px;">VOICE // TIMBRE</div>
+    <h3>语音音色</h3>
+    <p>仓库不带语音音频。没放 wav 时，阿鲤用 <b>Windows 内置中文语音</b> 现场合成：免费、离线，讲解文字不会发到任何服务器。</p>
+    <div id="voiceNow" style="font-size:12px;color:var(--muted);margin:10px 0 14px;min-height:18px;">正在读取…</div>
+    <p style="margin-bottom:6px;">想换成自己的音色，两条路：</p>
+    <ol style="font-size:12px;color:var(--muted);line-height:1.8;padding-left:18px;margin:0 0 14px;">
+      <li>手里已有 wav：按文件名放进下面两个目录，重启后优先用你的音频</li>
+      <li>想克隆音色：跑 <code>tools/tutorial_voice_tts.py</code>，先设 <code>MOMO_TTS_HOME</code>、<code>MOMO_TTS_REF</code>、<code>MOMO_TTS_PROMPT</code> 三个环境变量</li>
+    </ol>
+    <div id="voicePaths" style="font-family:var(--mono);font-size:10px;color:#6d8792;line-height:1.7;word-break:break-all;white-space:pre-line;margin-bottom:18px;"></div>
+    <div class="modal-actions"><button class="btn primary" onclick="closeVoiceInfo()">知道了</button></div>
+  </div>
+</div>
+
 <!-- 接入 API 弹窗 -->
 <div id="apiModal" class="modal">
   <div class="modal-card">
@@ -2161,7 +2179,7 @@ button.paint-mode-chip:hover, button.paint-mode-chip.active { color:#dffff4; bor
               </button>
             </div>
             <div class="pv-wave" id="pvWave" onclick="seekPracticeVoice(event)"></div>
-            <div class="pv-foot"><span id="pvTime">0:00 / 0:00</span><button class="pv-script-btn" id="pvScriptBtn" onclick="togglePracticeScript()">讲解稿</button></div>
+            <div class="pv-foot"><span id="pvTime">0:00 / 0:00</span><button class="pv-script-btn" onclick="openVoiceInfo()" title="语音音色：免费内置语音，也可以换成自己的">音色</button><button class="pv-script-btn" id="pvScriptBtn" onclick="togglePracticeScript()">讲解稿</button></div>
             <div class="pv-script" id="pvScript" hidden></div>
           </div>
         </section>
@@ -2185,7 +2203,7 @@ button.paint-mode-chip:hover, button.paint-mode-chip.active { color:#dffff4; bor
               <div class="lb-head">
                 <span class="lb-index" id="lbIndex">01</span>
                 <span class="lb-title" id="lbTitle">正在载入讲课…</span>
-                <span class="lb-voice" id="lbVoice"></span>
+                <button class="lb-voice" id="lbVoice" onclick="openVoiceInfo()" title="语音音色：免费内置语音，也可以换成自己的">语音音色 ⚙</button>
               </div>
               <div class="lb-track"><span id="lbProgress"></span></div>
             </div>
@@ -4283,7 +4301,7 @@ function bindLecture(file) {
     if (!r || !r.ok || !r.sections || !r.sections.length) return;
     lectureData = r;
     document.getElementById('lectureBar').hidden = false;
-    document.getElementById('lbVoice').textContent = r.voice ? r.voice + ' 音色' : '';
+    document.getElementById('lbVoice').title = r.voice ? ('当前参考音色：' + r.voice + '，点开可换') : '语音音色：点开可换成自己的';
     selectLecture(0, false);
   }).catch(() => {});
 }
@@ -4318,15 +4336,24 @@ function selectLecture(i, autoplay) {
   ed.scrollTop = Math.max(0, top);
 
   stopLectureAudio();
-  const can = !!(sec.url && sec.exists);
-  document.getElementById('lbPlay').disabled = !can;
-  if (!can) return;
+  const hasWav = !!(sec.url && sec.exists);
+  document.getElementById('lbPlay').disabled = !(hasWav || sec.text);
+  if (!hasWav) {
+    // 仓库不带音频：点播放时才用系统语音合成，不提前占带宽
+    if (autoplay) ttsSynthesize(sec, true);
+    return;
+  }
   lectureAudio = new Audio(sec.url);
-  lectureAudio.preload = 'metadata';
-  lectureAudio.addEventListener('loadedmetadata', lbPaint);
-  lectureAudio.addEventListener('play', () => { lbSetPlaying(true); cancelAnimationFrame(lectureRaf); lectureRaf = requestAnimationFrame(lbTick); });
-  lectureAudio.addEventListener('pause', () => { lbSetPlaying(false); cancelAnimationFrame(lectureRaf); lbPaint(); });
-  lectureAudio.addEventListener('ended', () => {
+  wireLectureAudio(lectureAudio, autoplay);
+}
+
+/* 讲课音频的事件绑定抽出来，自带 wav 和系统合成共用一套 */
+function wireLectureAudio(audio, autoplay) {
+  audio.preload = 'metadata';
+  audio.addEventListener('loadedmetadata', lbPaint);
+  audio.addEventListener('play', () => { lbSetPlaying(true); cancelAnimationFrame(lectureRaf); lectureRaf = requestAnimationFrame(lbTick); });
+  audio.addEventListener('pause', () => { lbSetPlaying(false); cancelAnimationFrame(lectureRaf); lbPaint(); });
+  audio.addEventListener('ended', () => {
     lbSetPlaying(false);
     cancelAnimationFrame(lectureRaf);
     lbPaint();
@@ -4337,13 +4364,59 @@ function selectLecture(i, autoplay) {
   });
   if (autoplay) {
     lectureAuto = true;
-    const p = lectureAudio.play();
+    const p = audio.play();
     if (p && p.catch) p.catch(() => toast('讲课音频打不开'));
   }
 }
 
+let lectureSynthPending = false;
+
+/* 没有 wav 时用 Windows 内置语音现场合成；后端按内容哈希缓存，第二次是秒开 */
+function ttsSynthesize(sec, autoplay) {
+  if (!sec || !sec.text) { toast('这一段没有讲解稿'); return; }
+  if (lectureSynthPending) return;
+  const api = window.pywebview && window.pywebview.api;
+  if (!api || !api.tts_speak) { toast('系统语音不可用'); return; }
+  lectureSynthPending = true;
+  const want = currentWorkspaceFile;
+  toast('正在用系统语音合成…');
+  api.tts_speak(sec.text, sec.id).then(r => {
+    lectureSynthPending = false;
+    if (currentWorkspaceFile !== want) return;
+    if (!r || !r.ok) { toast((r && r.error) || '系统语音合成失败'); return; }
+    lectureAudio = new Audio(r.data);
+    wireLectureAudio(lectureAudio, autoplay);
+  }).catch(() => { lectureSynthPending = false; toast('系统语音合成失败'); });
+}
+
+/* 语音音色说明：内置语音是免费的，同时告诉人怎么换成自己的 */
+function openVoiceInfo() {
+  const m = document.getElementById('voiceModal');
+  if (!m) return;
+  m.style.display = 'flex';
+  const now = document.getElementById('voiceNow');
+  const paths = document.getElementById('voicePaths');
+  const api = window.pywebview && window.pywebview.api;
+  if (!api || !api.tts_info) { now.textContent = '当前：Windows 内置语音（免费、离线）'; return; }
+  api.tts_info().then(r => {
+    if (!r || !r.ok) return;
+    now.textContent = '当前：' + r.engine + ' · ' + r.voice
+      + (r.custom_wav ? '（已放 ' + r.custom_wav + ' 段自定义音频，优先使用）' : '（免费、离线）');
+    paths.textContent = '教程音频：' + r.voice_dir + '\n练习音频：' + r.practice_dir + '\n合成缓存：' + r.cache_dir;
+  }).catch(() => {});
+}
+
+function closeVoiceInfo() {
+  const m = document.getElementById('voiceModal');
+  if (m) m.style.display = 'none';
+}
+
 function toggleLecture() {
-  if (!lectureAudio) return;
+  if (!lectureAudio) {
+    const sec = lbSections()[lectureIdx];
+    if (sec && sec.text && !(sec.url && sec.exists)) { lectureAuto = true; ttsSynthesize(sec, true); }
+    return;
+  }
   if (lectureAudio.paused || lectureAudio.ended) {
     if (lectureAudio.ended) lectureAudio.currentTime = 0;
     lectureAuto = true;
@@ -4434,16 +4507,17 @@ function bindPracticeVoice(c) {
   stopPracticeVoice();
   const v = (c && c.voice) || {};
   pvVoice = v;
-  const ok = !!(v.url && v.exists);
+  const hasWav = !!(v.url && v.exists);
+  const ok = hasWav || !!v.text;
   const box = document.getElementById('practiceVoice');
   const play = document.getElementById('pvPlay');
   const btn = document.getElementById('pvScriptBtn');
   const script = document.getElementById('pvScript');
   box.classList.toggle('is-empty', !ok);
   const nameEl = document.getElementById('pvVoiceName');
-  if (nameEl) nameEl.textContent = (v.name || '讲解') + '音色';
+  if (nameEl) nameEl.textContent = (v.name || '讲解') + (hasWav ? '音色' : ' · 系统语音');
   play.disabled = !ok;
-  play.title = ok ? '播放讲解' : '这条讲解还没合成';
+  play.title = hasWav ? '播放讲解' : (v.text ? '用系统语音播放' : '这条讲解还没合成');
   script.textContent = v.text || '';
   script.hidden = true;
   btn.textContent = '讲解稿';
@@ -4452,13 +4526,40 @@ function bindPracticeVoice(c) {
   document.getElementById('pvTime').textContent = '0:00 / 0:00';
   if (!ok) return;
   pvVoice.__id = c ? c.id : '';
-  pvAudio = new Audio(v.url);
+  if (hasWav) {
+    pvAudio = new Audio(v.url);
+    wirePvAudio();
+  } else {
+    pvAudio = null;   // 仓库没带音频：点播放时现场合成
+  }
+}
+
+function wirePvAudio() {
   pvAudio.preload = 'metadata';
   pvAudio.addEventListener('loadedmetadata', pvPaintProgress);
   pvAudio.addEventListener('error', () => pvFallbackVoice());
   pvAudio.addEventListener('play', () => { pvSetPlaying(true); cancelAnimationFrame(pvRaf); pvRaf = requestAnimationFrame(pvTick); });
   pvAudio.addEventListener('pause', () => { pvSetPlaying(false); cancelAnimationFrame(pvRaf); pvPaintProgress(); });
   pvAudio.addEventListener('ended', () => { pvSetPlaying(false); cancelAnimationFrame(pvRaf); pvPaintProgress(); });
+}
+
+let pvSynthPending = false;
+
+function pvSynthesize() {
+  if (!pvVoice || !pvVoice.text || pvSynthPending) return;
+  const api = window.pywebview && window.pywebview.api;
+  if (!api || !api.tts_speak) { toast('系统语音不可用'); return; }
+  pvSynthPending = true;
+  toast('正在用系统语音合成…');
+  api.tts_speak(pvVoice.text, pvVoice.__id).then(r => {
+    pvSynthPending = false;
+    if (!pvVoice) return;
+    if (!r || !r.ok) { toast((r && r.error) || '系统语音合成失败'); return; }
+    pvAudio = new Audio(r.data);
+    wirePvAudio();
+    pvVoice.__wantPlay = true;
+    pvAudio.play().catch(() => toast('合成音频没能播放'));
+  }).catch(() => { pvSynthPending = false; toast('系统语音合成失败'); });
 }
 
 /* 页面是本地 http 服务加载的，相对路径正常；万一目录分家就退回后端 base64 */
@@ -4478,7 +4579,7 @@ function pvFallbackVoice() {
 }
 
 function togglePracticeVoice() {
-  if (!pvAudio) return;
+  if (!pvAudio) { pvSynthesize(); return; }
   if (pvAudio.paused || pvAudio.ended) {
     if (pvAudio.ended) pvAudio.currentTime = 0;
     if (pvVoice) pvVoice.__wantPlay = true;

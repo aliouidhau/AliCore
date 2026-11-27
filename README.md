@@ -52,9 +52,15 @@ C 语言需要 TinyCC：仓库不打包编译器。首次点 C 教程或 C 题�
 
 ## 语音怎么来（仓库不带音频）
 
-稿子在 `workspace/tutorial_voice.json`、`workspace/practice_voice.json`，音频目录
-`assets/voice/` 被 `.gitignore` 排除。想听讲课，装 [GPT-SoVITS](https://github.com/RVC-Boss/GPT-SoVITS)
-后用自己的参考音色合成：
+默认走 **Windows 内置中文语音（SAPI5）**：免费、离线、不联网，讲解文字不会发到任何服务器。
+首次点讲课/讲解时现场合成，缓存到 `<data>\_runtime\tts_cache`，同一段第二次是秒开。
+程序里点「语音音色 ⚙」能看到当前引擎和两个音频目录。
+
+想换成自己的音色：
+
+- 手里已经有 wav：教程放 `assets/voice/tutorial/<课key>/<节id>.wav`，练习放
+  `assets/voice/practice/<题id>.wav`，重启后优先用你的音频，缺失的段仍回落到内置语音
+- 想克隆音色：装 [GPT-SoVITS](https://github.com/RVC-Boss/GPT-SoVITS)，用 5 秒参考音频合成：
 
 ```
 set MOMO_TTS_HOME=D:\GPT-SoVITS
@@ -65,8 +71,6 @@ python tools/tutorial_voice_tts.py
 python tools/voice_practice_tts.py
 python tools/voice_normalize.py
 ```
-
-没有音频程序照常跑，只是点「讲课」不出声。
 
 ## 数据放在哪
 

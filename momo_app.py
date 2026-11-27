@@ -87,6 +87,10 @@ PRACTICE_ANSWERS_FILE = os.path.join(DATA_DIR, "workspace", "practice_answers.js
 # 教程语音讲课：稿子在 workspace/tutorial_voice.json，音频在 assets/voice/tutorial/<key>/<节>.wav
 TUTORIAL_VOICE_FILE = os.path.join(DATA_DIR, "workspace", "tutorial_voice.json")
 TUTORIAL_VOICE_REL = "assets/voice/tutorial"
+# 仓库不带音频。没有自带 wav 时用 Windows 内置语音（SAPI）现场合成，免费、离线、不联网；
+# 合成结果缓存在 runtime 下，同一段第二次点开是秒播。想换自己的音色见 README。
+TTS_CACHE_DIR = os.path.join(RUNTIME_DIR, "tts_cache")
+TTS_BUILTIN_VOICE = "Microsoft Huihui Desktop"
 # 学习进度 / 错题本 / 复习排期：纯本地 JSON，零 token
 PROGRESS_FILE = os.path.join(DATA_DIR, "workspace", "_progress.json")
 # 分步导学：把每课拆成 6 个可完成的小步（数据在手写 JSON 里，不调模型）
@@ -132,7 +136,7 @@ def _apply_paths(app_dir=None, data_dir=None, runtime_dir=None):
     global APP_DIR, DATA_DIR, RUNTIME_DIR, BASE_DIR
     global HISTORY_FILE, UI_PREFS_FILE, HTML_FILE, START_LOG, ARCHIVE_DIR, TCC_EXE, PRACTICE_FILE
     global PRACTICE_VOICE_FILE, PRACTICE_VOICE_REL, PRACTICE_ANSWERS_FILE
-    global TUTORIAL_VOICE_FILE, TUTORIAL_VOICE_REL
+    global TUTORIAL_VOICE_FILE, TUTORIAL_VOICE_REL, TTS_CACHE_DIR
     global PROGRESS_FILE, LESSON_STEPS_FILE
 
     paths = ensure_dirs(resolve_paths(app_dir or APP_DIR, data_dir, runtime_dir))
@@ -150,6 +154,7 @@ def _apply_paths(app_dir=None, data_dir=None, runtime_dir=None):
     PRACTICE_ANSWERS_FILE = os.path.join(DATA_DIR, "workspace", "practice_answers.json")
     TUTORIAL_VOICE_FILE = os.path.join(DATA_DIR, "workspace", "tutorial_voice.json")
     TUTORIAL_VOICE_REL = "assets/voice/tutorial"
+    TTS_CACHE_DIR = os.path.join(RUNTIME_DIR, "tts_cache")
     PROGRESS_FILE = os.path.join(DATA_DIR, "workspace", "_progress.json")
     LESSON_STEPS_FILE = os.path.join(DATA_DIR, "workspace", "lesson_steps.json")
     return paths
@@ -166,6 +171,40 @@ def _log(msg):
             f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} {msg}\n")
     except Exception:
         pass
+
+
+def _sapi_synthesize(text, out_path):
+    """用 Windows 内置语音（SAPI5）把文字压成 wav：免费、离线、不联网。
+
+    只在没有自带 wav 时兜底。失败抛 RuntimeError，由 Api 转成一句人话。
+    """
+    try:
+        import pythoncom
+        import win32com.client as win32
+    except Exception as e:
+        raise RuntimeError("系统语音需要 pywin32（pip install pywin32）") from e
+    pythoncom.CoInitialize()
+    try:
+        voice = win32.Dispatch("SAPI.SpVoice")
+        picked = None
+        for v in voice.GetVoices():
+            try:
+                desc = v.GetDescription() or ""
+            except Exception:
+                continue
+            if "Chinese" in desc or "Huihui" in desc or "中文" in desc:
+                picked = v
+                break
+        if picked is None:
+            raise RuntimeError("系统里没找到中文语音，去「设置 → 时间和语言 → 语音」加一个")
+        voice.Voice = picked
+        stream = win32.Dispatch("SAPI.SpFileStream")
+        stream.Open(out_path, 3, False)  # SSFMCreateForWrite
+        voice.AudioOutputStream = stream
+        voice.Speak(text)
+        stream.Close()
+    finally:
+        pythoncom.CoUninitialize()
 
 
 class Api:
@@ -1251,6 +1290,65 @@ class Api:
                 })
             return {"ok": bool(sections), "voice": data.get("voice") or "", "title": les.get("title") or "", "sections": sections}
         return {"ok": False, "sections": []}
+
+    def tts_speak(self, text=None, key=""):
+        """没有自带音频时，用系统内置语音现场合成，返回 data URL。
+
+        仓库不带 241 MB 的语音包，第一次点讲解会走这里；同一段文字按内容哈希
+        缓存成 wav，第二次点开直接读文件。完全离线，不往任何服务器发字。
+        """
+        body = (text or "").strip()
+        if not body:
+            return {"ok": False, "error": "这段没有讲解稿"}
+        body = body[:6000]
+        tag = hashlib.md5((TTS_BUILTIN_VOICE + "|" + body).encode("utf-8")).hexdigest()[:16]
+        try:
+            os.makedirs(TTS_CACHE_DIR, exist_ok=True)
+        except Exception:
+            pass
+        out = os.path.join(TTS_CACHE_DIR, tag + ".wav")
+        if not os.path.isfile(out) or os.path.getsize(out) < 1024:
+            tmp = out + ".part"
+            try:
+                if os.path.exists(tmp):
+                    os.remove(tmp)
+                _sapi_synthesize(body, tmp)
+                os.replace(tmp, out)
+            except Exception as e:
+                try:
+                    if os.path.exists(tmp):
+                        os.remove(tmp)
+                except Exception:
+                    pass
+                _log(f"[语音] 合成失败：{e}")
+                return {"ok": False, "error": str(e)}
+        try:
+            if os.path.getsize(out) > 40 * 1024 * 1024:
+                return {"ok": False, "error": "合成音频过大"}
+            with open(out, "rb") as f:
+                b64 = base64.b64encode(f.read()).decode("ascii")
+        except Exception as e:
+            return {"ok": False, "error": f"读取合成音频失败：{e}"}
+        return {"ok": True, "data": "data:audio/wav;base64," + b64, "engine": "sapi"}
+
+    def tts_info(self):
+        """语音面板用：当前引擎、有没有自带音频、想自定义该放哪。"""
+        custom = 0
+        for rel in (TUTORIAL_VOICE_REL, PRACTICE_VOICE_REL):
+            root = os.path.join(APP_DIR, rel.replace("/", os.sep))
+            for _dp, _dn, fns in os.walk(root):
+                custom += sum(1 for fn in fns if fn.lower().endswith(".wav"))
+        return {
+            "ok": True,
+            "engine": "Windows 内置语音（SAPI5）",
+            "voice": TTS_BUILTIN_VOICE,
+            "free": True,
+            "offline": True,
+            "custom_wav": custom,
+            "voice_dir": os.path.join(APP_DIR, TUTORIAL_VOICE_REL.replace("/", os.sep)),
+            "practice_dir": os.path.join(APP_DIR, PRACTICE_VOICE_REL.replace("/", os.sep)),
+            "cache_dir": TTS_CACHE_DIR,
+        }
 
     def practice_state(self):
         """实战题的历史状态：通过没通过、错了几次、下次复习、写过的判断。
