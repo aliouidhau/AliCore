@@ -131,16 +131,24 @@ class LLMClient:
             "cache_hit": usage.get("prompt_cache_hit_tokens", 0) or 0,
         }
 
+        calls = msg.get("tool_calls") or []
         content = (msg.get("content") or "").strip()
-        if not content:
-            content = (msg.get("reasoning_content") or "").strip()
+        reasoning = (msg.get("reasoning_content") or "").strip()
+        # 思考过程不能当回答：
+        #   1) 有 tool_calls 时，content 必须是空的，否则思考会被塞进 assistant 消息，
+        #      跟着上下文一路带下去，前端还会当成正文显示；
+        #   2) 没有 tool_calls 且 content 真的空，才拿 reasoning 兜底——
+        #      推理模型偶发只吐思考不给正文，这时候显示点东西好过一片空白。
+        if not content and not calls:
+            content = reasoning
 
         if choice.get("finish_reason") == "length" and content:
             content += "\n\n（这条被截断了：输出到了上限。可以让我接着说完，或把 max_output_tokens 调大）"
 
         return {
             "content": content,
-            "tool_calls": msg.get("tool_calls") or [],
+            "reasoning": reasoning,
+            "tool_calls": calls,
             "usage": self.last_usage,
             "provider": pid,
             "model": model,

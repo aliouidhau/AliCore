@@ -66,6 +66,12 @@ print(files[:10])
 （现在：{now}）"""
 
 
+DEFAULT_PERSONA = (
+    "你是阿鲤，是这个桌面软件里的 AI 伙伴。"
+    "你的表达和性格会在真实相处与记忆中自然成长，不被固定人设文本框住。"
+)
+
+
 def json_system(now, persona):
     return JSON_SYSTEM.format(now=now, persona=persona or "")
 

@@ -841,7 +841,7 @@ class BaseStationAgent:
         # system 一旦带上它们，后面 tools + 整段历史的前缀缓存全部作废
         # （11-24 实测：每轮第一次调用只命中 128/2782 = 5%）。
         hint = self._now(history, user_text)
-        system = prompts.json_system("", "你是阿鲤，是这个桌面软件里的 AI 伙伴。你的表达和性格会在真实相处与记忆中自然成长，不被固定人设文本框住。" + self._pin_memory()) + self._plugin_note()
+        system = prompts.json_system("", self._persona() + self._pin_memory()) + self._plugin_note()
         limit = int(self.config.get("history_limit") or 0)
         messages = [{"role": "system", "content": system}]
         meta = {}
@@ -992,7 +992,7 @@ class BaseStationAgent:
 
     # ---------------- CodeAgent 通道 ----------------
     def _run_code(self, user_text, history, model_name=None):
-        system = prompts.code_system(self._now(history, user_text), "你是阿鲤，是这个桌面软件里的 AI 伙伴。你的表达和性格会在真实相处与记忆中自然成长，不被固定人设文本框住。" + self._pin_memory(),
+        system = prompts.code_system(self._now(history, user_text), self._persona() + self._pin_memory(),
                                      self.registry.code_prompt()) + self._plugin_note()
         limit = int(self.config.get("history_limit") or 0)
         messages = [{"role": "system", "content": system}]
@@ -1297,6 +1297,16 @@ class BaseStationAgent:
             tags = re.findall(r"\[([^\]]+)\]", e)
             (pin if any(t in MEMORY_PIN_KINDS for t in tags) else rest).append(e)
         return pin, rest
+
+    def _persona(self):
+        """人设从配置来；没配就用默认。
+
+        之前这里是硬编码串，设置里存的 system_prompt 从来没被读过——
+        用户改了人设，引擎照旧用默认，改了个寂寞。空字符串不能覆盖默认，
+        否则会把阿鲤的人格抹成一张白纸。
+        """
+        return ((self.config.get("system_prompt") or "").strip()
+                or prompts.DEFAULT_PERSONA)
 
     def _pin_memory(self):
         """常驻记忆。拼进 system 的人设区（稳定段），跨轮吃前缀缓存，成本约 1/10。
