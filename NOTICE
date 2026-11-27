@@ -59,17 +59,45 @@ AliCore — 第三方致谢与许可声明
 须随附各自的许可证全文。
 
 - pywebview      BSD 3-Clause      https://github.com/r0x0r/pywebview
+                                   Copyright (c) 2014-2017, Roman Sirokov
 - pythonnet      MIT               https://github.com/pythonnet/pythonnet
+                                   Copyright (c) 2006-2021, Python.NET contributors
 - clr_loader     MIT               https://github.com/pythonnet/clr-loader
+                                   Copyright (c) 2019-2026 Benedikt Reinartz
 - requests       Apache 2.0        https://github.com/psf/requests
-- Pillow         MIT-CMU           https://github.com/python-pillow/Pillow
+                                   Apache-2.0 要求随分发附带其 NOTICE 文件
+- Pillow         MIT-CMU (HPND)    https://github.com/python-pillow/Pillow
+                                   Copyright (c) 1997-2011, Secret Labs AB
 - jieba          MIT               https://github.com/fxsjy/jieba
-- pywin32        PSF License       https://github.com/mhammond/pywin32
+                                   Copyright (c) 2015, Sun Junyi
+                                   ⚠ 该发行包内没带 LICENSE 文件，只有 PyPI 元数据标 MIT；
+                                   分发时须自行补上 MIT 全文与版权行
 - python-pptx    MIT               https://github.com/scanny/python-pptx
+                                   Copyright (c) 2013, Steve Canny
 - python-docx    MIT               https://github.com/python-openxml/python-docx
+                                   Copyright (c) 2013, Steve Canny
 - reportlab      BSD 3-Clause      https://hg.reportlab.com/reportlab
+                                   Copyright (c) 2000-2024, ReportLab Inc.
+                                   标准三条款 BSD，无「商用需另购授权」附加条款
+                                   （已核对 reportlab 5.1.0 发行包内 LICENSE 原文）
 - pypdf          BSD 3-Clause      https://github.com/py-pdf/pypdf
-- numpy          BSD 3-Clause      https://github.com/numpy/numpy
+                                   Copyright (c) 2006-2008, Mathieu Fenniak
+- numpy          BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0
+                                   https://github.com/numpy/numpy
+                                   单一 BSD-3 的写法不完整，实际为多许可组合
+
+### pywin32（注意：混合许可，不是单一 PSF）
+
+- 主体            BSD 3-Clause    Copyright (c) 1994-2008, Mark Hammond
+- `win32com` 子模块 BSD 3-Clause   Copyright (c) 1996-2008, Greg Stein and Mark Hammond
+- `adodbapi` 子模块 LGPL 2.1       **本项目未使用**
+- `pythonwin` / `isapi` 等        自带独立许可，**本项目未使用**
+
+本项目只调用 `win32com.client`（SAPI 语音合成），落到上述 BSD-3 条款。
+pywin32 的发行包内同时打包了 `adodbapi`（LGPL-2.1），它不在本项目的使用范围内。
+**打包分发时须排除 `adodbapi` 目录**，否则会把 LGPL 组件带进产物，
+需要额外履行 LGPL 义务（可替换库、提供源码等）。
+PyPI 元数据把整个包标成 `License: PSF`，与实际子模块许可不一致，以本条目为准。
 
 三、参考文献
 ------------
