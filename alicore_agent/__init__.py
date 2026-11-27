@@ -24,6 +24,7 @@ from .tools import ToolRegistry
 from .tools_fs import register_fs_tools, configure_paths
 from .tools_docs import register_doc_tools, configure_storage as configure_doc_storage
 from .tools_sandbox import register_sandbox_tool
+from .tools_shell import register_shell_tools
 from .plugins import install_plugin_tools, configure_storage
 
 __all__ = [
@@ -72,6 +73,7 @@ def build_agent(base_dir, data_dir=None, runtime_dir=None, app_dir=None, safe_mo
     register_fs_tools(registry)
     register_doc_tools(registry)
     register_sandbox_tool(registry, runtime)
+    register_shell_tools(registry, paths.data_dir)
     plugins = install_plugin_tools(registry, paths.data_dir)
 
     ledger = EventLedger(os.path.join(paths.data_dir, "events"))

@@ -758,9 +758,7 @@ def register_fs_tools(registry):
     )
     registry.register(
         "edit_file", "只替换 old 那一段(自动备份)", edit_file,
-        json_visible=False,
-        # 「改」系列收窄：整写走 write_file，只有明显是局部替换才需要它
-        tags=("替换", "改成", "改一下", "改这句", "改掉", "改成这", "局部", "replace"),
+        json_visible=True,
     )
     registry.register(
         "code_map", "扫 .py 出 文件→函数(行号) 结构图", code_map,

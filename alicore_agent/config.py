@@ -26,7 +26,10 @@ DEFAULT_CONFIG = {
     "max_steps": 4,
     "sandbox": True,
     "temperature": 0.85,
-    "history_limit": 10,
+    "history_limit": 0,          # 0 = 不按轮数截，按下面的字符预算装
+    "history_char_budget": 0,    # 0 = 按 context_window 自动算
+    "history_item_limit": 0,     # 0 = 单条不截断
+    "summary_every": 0,          # 0 = 只在上下文压力到阈值时摘要
     "context_window": 131072,
     "max_output_tokens": 8192,
 }
@@ -257,6 +260,10 @@ class Config:
             "providers": provs,
             "current_provider": self.get("current_provider") or "",
             "current_model": self.get("current_model") or "",
+            "history_limit": self.get("history_limit") or 0,
+            "history_char_budget": self.get("history_char_budget") or 0,
+            "summary_every": self.get("summary_every") or 0,
+            "context_window": self.get("context_window") or 131072,
         }
 
     def describe_secrets(self):

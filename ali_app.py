@@ -560,6 +560,18 @@ class Api:
         return {"ok": True, "provider": entry, "models": models_list,
                 "message": f"已接入 {entry['name']}，{len(models_list)} 个模型"}
 
+    def set_context(self, budget=0):
+        """调整历史字符预算。0 = 按 context_window 自动算。"""
+        try:
+            v = max(0, int(budget or 0))
+        except Exception:
+            return {"ok": False, "error": "预算要是整数"}
+        cfg = self._agent.config
+        cfg.set_many(history_char_budget=v)
+        cfg.save()
+        auto = self._agent._char_budget() if hasattr(self._agent, "_char_budget") else 0
+        return {"ok": True, "history_char_budget": v, "effective": auto}
+
     def remove_provider(self, provider_id=""):
         pid = (provider_id or "").strip()
         if not pid:

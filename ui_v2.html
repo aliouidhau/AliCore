@@ -1461,6 +1461,7 @@
   .setting-check:checked { background:var(--accent-dim); border-color:var(--accent); }
   .setting-check:checked::after { transform:translateX(16px); background:var(--accent-bright); }
   .setting-select { min-width:116px; padding:7px 9px; border:1px solid var(--line); border-radius:4px; background:#090f12; color:var(--text-soft); outline:none; font-size:11px; }
+  .modal-card input.setting-input { flex-shrink:0; width:120px; padding:7px 9px; margin:0; border:1px solid var(--line); border-radius:4px; background:#090f12; color:var(--text-soft); outline:none; font-size:11px; }
   body.hide-character .right { display:none; }
   body.hide-traces .trace, body.hide-traces .trace-fold { display:none; }
   body.reduce-motion *, body.reduce-motion *::before, body.reduce-motion *::after { animation:none !important; transition:none !important; }
@@ -2043,6 +2044,18 @@ button.paint-mode-chip:hover, button.paint-mode-chip.active { color:#dffff4; bor
       <div class="setting-row">
         <div><label for="prefSendMode">发送快捷键</label><small>另一种组合始终用于换行</small></div>
         <select class="setting-select" id="prefSendMode"><option value="enter">Enter 发送</option><option value="ctrl">Ctrl + Enter 发送</option></select>
+      </div>
+    </div>
+
+    <div class="settings-group">
+      <div class="settings-caption">CONTEXT // 上下文</div>
+      <div class="setting-row">
+        <div><label for="prefCtxBudget">历史字符预算</label><small>0 = 自动；越大记得越多，也越费 token</small></div>
+        <input class="setting-input" type="number" id="prefCtxBudget" min="0" step="5000" placeholder="0 = 自动">
+      </div>
+      <div class="setting-row">
+        <div><span class="setting-name">当前生效</span><small id="ctxEffective">—</small></div>
+        <button class="btn mini" onclick="saveCtxBudget()">保存预算</button>
       </div>
     </div>
 
@@ -3011,7 +3024,30 @@ function hideModal(modal) {
   // 那样弹窗会停在 opacity:0 但 display:flex——一个看不见却挡住点击的遮罩。
   setTimeout(() => { if (modal.style.display !== 'none') modal.style.display = 'none'; }, 260);
 }
-function openSettings() { syncPrefControls(); showModal(settingsModal); }
+function openSettings() {
+  syncPrefControls();
+  if (window.pywebview && window.pywebview.api) {
+    window.pywebview.api.get_config().then(c => {
+      const b = (c && c.history_char_budget) || 0;
+      const inp = document.getElementById('prefCtxBudget');
+      const eff = document.getElementById('ctxEffective');
+      if (inp) inp.value = b || '';
+      if (eff) eff.textContent = b > 0 ? (b.toLocaleString() + ' 字符（手动）') : '自动，按模型上下文算';
+    }).catch(() => {});
+  }
+  showModal(settingsModal);
+}
+function saveCtxBudget() {
+  const inp = document.getElementById('prefCtxBudget');
+  const v = parseInt((inp && inp.value) || '0', 10) || 0;
+  if (!window.pywebview || !window.pywebview.api) return;
+  window.pywebview.api.set_context(v).then(r => {
+    if (!r || !r.ok) { toast((r && r.error) || '保存失败'); return; }
+    const eff = document.getElementById('ctxEffective');
+    if (eff) eff.textContent = v > 0 ? (v.toLocaleString() + ' 字符（手动）') : ('自动，当前约 ' + (r.effective || 0).toLocaleString() + ' 字符');
+    toast('上下文预算已更新');
+  }).catch(() => toast('保存失败'));
+}
 function closeSettings() { hideModal(settingsModal); }
 function openPlugins() { showModal(pluginsModal); refreshPlugins(); }
 function closePlugins() { hideModal(pluginsModal); }

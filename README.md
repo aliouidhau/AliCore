@@ -53,6 +53,25 @@ C 语言需要 TinyCC：仓库不打包编译器。首次点 C 教程或 C 题�
 `<data>\_runtime\tcc\tcc\tcc.exe`，不写系统目录、不需要管理员权限。也可以手动放一份，
 或用 `ALICORE_RUNTIME_DIR` 指向已有运行时；没装只影响 `.c`，Python 照常用。
 
+## 上下文与工具（开源版和内部版不一样）
+
+内部版为了压月耗做了很多限制：历史只留 10 轮（约 3600 字符）、每 6 轮强制摘要、GLM 免费档兜底。开源版把这些全部放开，按「拿来干活」的标准重配：
+
+- **历史**：默认不按轮数截，按 `context_window` 自动算字符预算（131072 上下文约 147k 字符，实测 160 条历史全量装下）。装不下才从最老的丢。想写死就在 `config.json` 里填 `history_char_budget`。
+- **摘要**：默认只在上下文压力到 75% 时触发，不再每 6 轮硬摘。`summary_every` 填 0 就是不按轮数摘要。
+- **单条消息**：默认不截断。老版写死 400 字符，一条长回答会被腰斩。
+
+常驻工具（每轮都在清单里）：
+
+`read_file` / `list_files` / `write_file` / `edit_file` / `search_text` / `run_command` / `run_python` / `http_get` / `todo_write` / `todo_read` / `remember` / `search_memory`
+
+- `run_command`：git / npm / pip / pytest / 构建，`cwd` 指定工作目录
+- `run_python`：隔离环境里跑 Python，要第三方库时用它
+- `http_get`：抓公网网页或接口，本机/内网地址拒绝
+- `todo_write` / `todo_read`：多步任务先列清单，模型自己勾进度
+
+`run_command`、`run_python`、`edit_file`、`delete_file`、`move_file`、`open_path` 执行前会在界面弹「允许一次」。安全模式下只留只读工具。
+
 ## 语音怎么来（仓库不带音频）
 
 默认走 **Windows 内置中文语音（SAPI5）**：免费、离线、不联网，讲解文字不会发到任何服务器。

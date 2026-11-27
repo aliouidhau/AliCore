@@ -56,6 +56,7 @@ CONFIRM_TOOLS = {
     "move_file": "移动或重命名文件",
     "open_path": "打开文件或文件夹（等同双击，可能触发执行）",
     "run_python": "执行一段 Python 代码",
+    "run_command": "在本机执行一条命令（git/npm/pip/测试等）",
     "edit_file": "局部改写文件内容（改前会备份）",
 }
 

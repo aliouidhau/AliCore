@@ -18,6 +18,6 @@ def register_sandbox_tool(registry, runtime):
         "run_python",
         "在隔离环境执行 Python，返回 stdout",
         run_python,
-        json_visible=False,
+        json_visible=True,
     )
     return registry

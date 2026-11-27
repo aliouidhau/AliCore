@@ -63,7 +63,7 @@ _FORBIDDEN_CALLS = {
 
 # 历史预算：条数只是上限，真正管住的是字符。
 # 实测基站历史里一条模型回答就能到 2113 字符（约 1500 token），每轮重发一次，是最大的黑洞。
-HISTORY_ITEM_LIMIT = 400     # 单条最多留这么多字符
+HISTORY_ITEM_LIMIT = 0         # 0 = 单条不截断（老版写死 400，长回答会被腰斩）
 HISTORY_CHAR_BUDGET = 3600   # 历史总量最多这么多字符（1200→3600，让跨轮记忆多装几轮）
 HISTORY_RECENT_N = 4         # 最近几轮保底（2 问 2 答）
 HISTORY_RECENT_SHARE = 0.7   # 最近这几轮最多吃掉预算的多少，剩下的留给更早的问题
@@ -621,6 +621,23 @@ class BaseStationAgent:
         low = (text or "").lower()
         return "code" if any(h in low for h in self.CODE_HINTS) else "json"
 
+    def _char_budget(self):
+        """历史能占多少字符。默认按 context_window 自动算，不再写死 3600。
+
+        中文约 1 字 1 token，英文约 4 字符 1 token；这里按 2 字符/token 保守估。
+        留 40% 给 system、工具 schema、记忆注入和输出，剩下 60% 给历史。
+        """
+        fixed = int(self.config.get("history_char_budget") or 0)
+        if fixed > 0:
+            return fixed
+        try:
+            window = int(self.config.get("context_window") or 131072)
+            out = int(self.config.get("max_output_tokens") or 8192)
+        except Exception:
+            window, out = 131072, 8192
+        usable = max(0, window - out)
+        return max(16000, int(usable * 2 * 0.6))
+
     def _trim_history(self, history, limit, query=None, meta=None):
         """按字符预算装历史，两层。
 
@@ -645,12 +662,34 @@ class BaseStationAgent:
             ts = msg.get("ts")
             if ts and (msg.get("role") or "") == "user":
                 content = f"[{ts}] {content}"
-            if len(content) > HISTORY_ITEM_LIMIT:
-                content = content[:HISTORY_ITEM_LIMIT] + "…"
+            item_cap = int(self.config.get("history_item_limit") or 0)
+            if item_cap > 0 and len(content) > item_cap:
+                content = content[:item_cap] + "…"
             return {"role": msg.get("role") or "user", "content": content}
 
         picked, total = [], 0
-        recent_cap = int(HISTORY_CHAR_BUDGET * HISTORY_RECENT_SHARE)
+        budget = self._char_budget()
+
+        # limit<=0 = 放开模式：从最近往前整段装，装到预算满为止，不再只留最近 2 轮。
+        # 老逻辑（最近 N 轮 + BM25 捞相关）只在用户显式设了轮数上限时走。
+        if limit <= 0:
+            for i in range(n - 1, -1, -1):
+                item = blob(hist[i])
+                if picked and total + len(item["content"]) > budget:
+                    break
+                picked.append(item)
+                total += len(item["content"])
+            picked.reverse()
+            while picked and picked[0]["role"] != "user":
+                picked.pop(0)
+            if meta is not None:
+                meta["total"] = n
+                meta["kept"] = len(picked)
+                meta["truncated"] = len(picked) < n
+                meta["budget"] = budget
+            return picked
+
+        recent_cap = int(budget * HISTORY_RECENT_SHARE)
 
         # 1) 最近两轮：完整留
         for i in range(n - 1, max(-1, n - 1 - HISTORY_RECENT_N), -1):
@@ -659,13 +698,13 @@ class BaseStationAgent:
                 break
             picked.append(item)
             total += len(item["content"])
-            if len(picked) >= limit:
+            if limit > 0 and len(picked) >= limit:
                 break
         picked.reverse()
 
         # 2) 更早的：按相似度捞「一问一答」，回答一起带上
         older_end = n - HISTORY_RECENT_N
-        if query and older_end > 0 and total < HISTORY_CHAR_BUDGET:
+        if query and older_end > 0 and total < budget:
             units = []      # (原始下标, [user, assistant])
             for i in range(older_end):
                 if hist[i].get("role") != "user":
@@ -687,7 +726,7 @@ class BaseStationAgent:
                 for score, k in _good:
                     _, pair = units[k]
                     need = sum(len(m["content"]) for m in pair)
-                    room = HISTORY_CHAR_BUDGET - total
+                    room = budget - total
                     if need <= room:
                         extra.append((units[k][0], pair))
                         total += need
@@ -710,7 +749,7 @@ class BaseStationAgent:
                                 used += left + 1
                     if kept and kept[0]["role"] == "user":
                         extra.append((units[k][0], kept))
-                        total = HISTORY_CHAR_BUDGET
+                        total = budget
                         break
                 if extra:
                     extra.sort(key=lambda x: x[0])
@@ -741,7 +780,7 @@ class BaseStationAgent:
         # （11-24 实测：每轮第一次调用只命中 128/2782 = 5%）。
         hint = self._now(history, user_text)
         system = prompts.json_system("", "你是阿鲤，是这个桌面软件里的 AI 伙伴。你的表达和性格会在真实相处与记忆中自然成长，不被固定人设文本框住。" + self._pin_memory()) + self._plugin_note()
-        limit = int(self.config.get("history_limit") or 10)
+        limit = int(self.config.get("history_limit") or 0)
         messages = [{"role": "system", "content": system}]
         meta = {}
         messages += self._trim_history(history, limit, query=user_text, meta=meta)
@@ -893,7 +932,7 @@ class BaseStationAgent:
     def _run_code(self, user_text, history, model_name=None):
         system = prompts.code_system(self._now(history, user_text), "你是阿鲤，是这个桌面软件里的 AI 伙伴。你的表达和性格会在真实相处与记忆中自然成长，不被固定人设文本框住。" + self._pin_memory(),
                                      self.registry.code_prompt()) + self._plugin_note()
-        limit = int(self.config.get("history_limit") or 10)
+        limit = int(self.config.get("history_limit") or 0)
         messages = [{"role": "system", "content": system}]
         # 原来这里收了 history 却一次都没用——code 模式下她完全不记得刚才聊了什么，
         # 跟 _run_json 那条通道行为不一致。补上，用同一套字符预算裁剪。
@@ -1291,7 +1330,9 @@ class BaseStationAgent:
         # 冷启动：状态文件从未写过（summarized_msgs=0），但 history 已经很长——
         # 那是启用摘要前攒下的旧对话。不追补旧账：把已有历史都视为已摘要，
         # 从这轮之后的新对话开始滚动，避免第一轮就把几百条旧消息塞给模型。
-        if self._summarized_msgs == 0 and len(history) > SUMMARY_EVERY * 2:
+        every = int(self.config.get("summary_every") or 0)
+        warm_gate = (every if every > 0 else SUMMARY_EVERY) * 2
+        if self._summarized_msgs == 0 and len(history) > warm_gate:
             self._summarized_msgs = len(history)
             self._save_summarized_msgs(len(history))
             return
@@ -1299,7 +1340,8 @@ class BaseStationAgent:
         total = len(history) + 2
         pending = total - self._summarized_msgs
         pressure = self._context_pressure()
-        due_fixed = pending >= SUMMARY_EVERY * 2
+        # summary_every=0 → 不再按固定轮数摘要，只在上下文压力到阈值时压
+        due_fixed = every > 0 and pending >= every * 2
         due_pressure = (
             pressure >= SUMMARY_PRESSURE
             and pending >= SUMMARY_PRESSURE_MIN_TURNS * 2
