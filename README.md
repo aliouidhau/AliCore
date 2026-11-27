@@ -3,6 +3,8 @@
 跑在自己电脑上的本地 AI 桌面助手：`pywebview` 壳 + 单文件 HTML 前端 + Python agent 内核。
 能聊天、读写文件、跑代码、生成文档，带一套能真的编译运行、有隐藏断言判题的 C/Python 教学靶场。
 
+![界面](assets/ali_ui_preview.png)
+
 > 这是「避险版」仓库：只放代码、教程内容和示例配置。会话、记忆、学习进度、个人配置
 > 全部在运行时目录；语音音频不进仓库，没有音频时用 Windows 内置语音现场合成。
 
@@ -15,10 +17,14 @@ AliCore/
 ├─ alicore_agent/       # 内核：引擎 / 模型 / 工具 / 记忆 / 会话
 ├─ assets/              # 图标与立绘（不含语音）
 ├─ workspace/           # 靶场：40 课教程 / 练习模板 / 题库 / 分步导学 / 语音稿
+├─ plugins/             # 插件库（默认空，只带 README 与 ext 示例）
 ├─ tools/               # GPT-SoVITS 语音合成辅助脚本
 ├─ config.example.json  # 配置模板，复制成 config.json 再用
 ├─ requirements.txt
-└─ ali_app.spec         # PyInstaller 打包配置
+├─ NOTICE               # 第三方致谢与各项目许可证
+├─ LICENSE              # 代码 MIT / 教程 CC BY-NC-SA 4.0
+├─ ali_app.spec         # PyInstaller 打包配置
+└─ 阿鲤桌面端.bat       # 启动脚本（自动找 .venv 或系统 Python）
 ```
 
 ## 快速开始（Windows）
@@ -40,6 +46,23 @@ AliCore/
    或双击 `阿鲤桌面端.bat`（会自动找 `.venv` 或系统 Python）
 
 4. 左侧「工作空间」进靶场：教程只读、练习场随便改、实战模式有判题。
+
+5. 排障用安全模式：`python ali_app.py --safe-mode`，只挂只读工具、强制走 JSON 通道，
+   不执行任何写操作。窗口起不来、工具乱动的时候先用它。
+
+## 环境变量
+
+| 变量 | 作用 | 缺省 |
+|---|---|---|
+| `ALICORE_DATA_DIR` | 数据目录 | `%APPDATA%\AliCore` |
+| `ALICORE_RUNTIME_DIR` | 运行时目录（TCC / Blender / Graphviz 缓存） | `<data>\_runtime` |
+| `ALICORE_SECRETS` | secrets.json 路径（测试隔离用） | `<data>\secrets.json` |
+| `ALICORE_PLUGIN_LIB` | 插件库根目录 | `app\plugins` |
+| `ALICORE_SW_EXE` | `SLDWORKS.exe` | 自动探常见安装位 |
+| `ALICORE_BLENDER_EXE` | `blender.exe` | `<runtime>\blender\blender.exe` |
+| `ALICORE_DOT_EXE` | Graphviz 的 `dot.exe` | 运行时包 / 常见安装位 / PATH |
+| `ALICORE_TTS_HOME` / `_REF` / `_PROMPT` | GPT-SoVITS 合成（只在 tools 脚本里用） | 不设则用 SAPI5 |
+| `ALICORE_AUTO_ALLOW` | 跳过工具确认弹窗（自担风险） | 关 |
 
 ## 靶场里有什么
 

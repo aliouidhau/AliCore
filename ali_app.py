@@ -449,7 +449,14 @@ class Api:
     # ---------------- 前端现有接口（名字和参数保持不变） ----------------
     def get_config(self):
         # 不下发 key，只告诉前端有没有配
-        return self._agent.config.public_view()
+        view = self._agent.config.public_view()
+        # 顺便带上「自动模式下实际生效多少字符」，设置面板打开就能看到数字，
+        # 不用等用户点一次保存才知道。
+        try:
+            view["history_char_budget_effective"] = self._agent._char_budget()
+        except Exception:
+            view["history_char_budget_effective"] = 0
+        return view
 
     def get_ui_prefs(self):
         """软件界面设置。与人设无关，只保存显示和交互偏好。"""
@@ -2544,7 +2551,9 @@ def start_app(argv=None):
     )
     _log(f"窗口已创建 {time.time() - _t0:.1f}s")
     threading.Thread(target=_ensure_visible, args=(_t0,), daemon=True).start()
-    webview.start(storage_path=storage_dir)
+    webview.start(storage_path=storage_dir,
+                  icon=os.path.join(APP_DIR, "assets", "ali.ico")
+                  if os.path.exists(os.path.join(APP_DIR, "assets", "ali.ico")) else None)
 
 
 if __name__ == "__main__":

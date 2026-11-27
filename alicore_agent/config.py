@@ -22,7 +22,7 @@ DEFAULT_CONFIG = {
     "current_model": "",        # 当前用的模型名
     "system_prompt": "",
     "assistant_name": "",        # 助手叫什么；空 = 不给他派名字，让模型自己长
-    "agent_mode": "json",
+    "agent_mode": "auto",       # auto / json / code；auto 按输入内容决定走哪条通道
     "max_rounds": 6,
     "max_steps": 4,
     "sandbox": True,

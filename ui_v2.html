@@ -3065,10 +3065,13 @@ function openSettings() {
   if (window.pywebview && window.pywebview.api) {
     window.pywebview.api.get_config().then(c => {
       const b = (c && c.history_char_budget) || 0;
+      const bez = (c && c.history_char_budget_effective) || 0;
       const inp = document.getElementById('prefCtxBudget');
       const eff = document.getElementById('ctxEffective');
       if (inp) inp.value = b || '';
-      if (eff) eff.textContent = b > 0 ? (b.toLocaleString() + ' 字符（手动）') : '自动，按模型上下文算';
+      if (eff) eff.textContent = b > 0
+        ? (b.toLocaleString() + ' 字符（手动）')
+        : ('自动，当前约 ' + bez.toLocaleString() + ' 字符');
       const sel = document.getElementById('prefSearchProvider');
       if (sel) sel.value = (c && c.search_provider) || '';
       const sk = document.getElementById('searchKeyState');
