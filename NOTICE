@@ -1,0 +1,88 @@
+AliCore — 第三方致谢与许可声明
+================================
+
+本项目（AliCore，Copyright (c) 2026 李于鲤，MIT License）在设计与实现过程中
+借鉴了下列开源项目的架构思路、设计规则与提示词结构。
+
+**当前状态：本项目不包含下列任何项目的源代码。** 所有实现均为阅读其源码后
+自行重写，代码注释中逐处标注了对应来源与关系（「运用」/「进行二次创作」/「参考」）。
+若未来引入其源代码片段，必须在本文件对应条目下追加原始版权声明，
+并在该段代码处保留原项目的版权头。
+
+一、架构与实现借鉴（未复制源代码）
+--------------------------------
+
+1. smolagents
+   归属：HuggingFace
+   许可：Apache License 2.0
+   仓库：https://github.com/huggingface/smolagents
+   用于：CodeAgent 的「一轮一个代码块 → 执行 → 结果回灌 → done() 收口」循环骨架；
+        受限执行命名空间与跨轮变量持久；工具按函数签名生成 schema 的做法；
+        CodeAgent 提示词结构；本地执行器的禁用清单与执行护栏数值。
+
+2. OpenHands
+   归属：All Hands AI, Inc.
+   许可：MIT License
+   仓库：https://github.com/All-Hands-AI/OpenHands
+   用于：Agent / Runtime / 工具 / 事件四层分离的架构划分；
+        Runtime 作为可替换执行环境的抽象；
+        Action / Observation 事件流的记录方式（本项目压成更轻的 kind + label + payload）。
+
+3. SWE-agent
+   归属：Princeton NLP
+   许可：MIT License
+   仓库：https://github.com/princeton-nlp/SWE-agent
+   用于：ACI（Agent-Computer Interface）四条交互规则——
+        编辑前跑 linter、空结果必须明说、编辑失败要给出可操作原因、命令输出要可读。
+
+4. aider
+   归属：Paul Gauthier（Aider-AI）
+   许可：Apache License 2.0
+   仓库：https://github.com/Aider-AI/aider
+   关系：仅作对照，未沿用代码。本项目 edit_file 刻意不做模糊匹配（aider 在该环节
+        使用约 20KB 的匹配逻辑）；code_map 用标准库 ast 而非 aider 的 repomap + tree-sitter。
+
+5. DeepSeek Harness（dsh）及其生态插件
+   归属：DeepSeek AI
+   许可：MIT License
+   仓库：https://github.com/deepseek-ai/deepseek-harness
+   用于：HTTP 退避重试策略——参考生态插件 dsh-llm-retry
+        （只重试 429 / 5xx / 超时 / 断连；401、400、403 不重试；
+         0.5s 起翻倍、8s 封顶、10% 抖动；尊重 Retry-After）；
+        规则式偏好捕获与确定性凭证脱敏——参考生态插件 dsh-engram
+        （npm 包，维护者 skepsun，关键词 dsh-plugin / deepseek-harness / long-term-memory）。
+
+二、运行时依赖
+--------------
+
+下列库以包依赖形式使用，未修改其源码。分发二进制或打包发行版时，
+须随附各自的许可证全文。
+
+- pywebview      BSD 3-Clause      https://github.com/r0x0r/pywebview
+- pythonnet      MIT               https://github.com/pythonnet/pythonnet
+- clr_loader     MIT               https://github.com/pythonnet/clr-loader
+- requests       Apache 2.0        https://github.com/psf/requests
+- Pillow         MIT-CMU           https://github.com/python-pillow/Pillow
+- jieba          MIT               https://github.com/fxsjy/jieba
+- pywin32        PSF License       https://github.com/mhammond/pywin32
+- python-pptx    MIT               https://github.com/scanny/python-pptx
+- python-docx    MIT               https://github.com/python-openxml/python-docx
+- reportlab      BSD 3-Clause      https://hg.reportlab.com/reportlab
+- pypdf          BSD 3-Clause      https://github.com/py-pdf/pypdf
+- numpy          BSD 3-Clause      https://github.com/numpy/numpy
+
+三、参考文献
+------------
+
+- BM25 打分公式：Robertson, S. & Zaragoza, H. (2009).
+  The Probabilistic Relevance Framework: BM25 and Beyond.
+  Foundations and Trends in Information Retrieval, 3(4), 333–389.
+  本项目按公式自行实现，未拷贝第三方实现。
+
+四、维护约定
+------------
+
+1. 新增借鉴：先在上表补条目（项目 / 归属 / 许可 / 用途），再在代码注释里写清关系。
+2. 引入源码：除本文件外，还须在该源文件顶部保留原始版权头，并在 README 的
+   「借鉴与致谢」表同步更新。
+3. 移除借鉴：同步删除本文件条目与代码注释，避免声明与实现不一致。

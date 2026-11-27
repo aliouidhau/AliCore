@@ -138,6 +138,8 @@ python ali_app.py --data-dir D:\my-alicore-data --runtime-dir D:\my-alicore-runt
 
 BM25 打分公式出自信息检索的公开文献（Robertson & Zaragoza, 2009），实现是按公式自己写的。
 
+完整的版权归属、各项目的许可证位置、运行时依赖的许可清单见 [NOTICE](NOTICE)。
+
 ## 已知限制
 
 - 只在 Windows 上跑过（pywebview 走 WinForms 后端）
