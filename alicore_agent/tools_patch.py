@@ -155,59 +155,64 @@ def apply_patch(patch: str, dry_run: bool = False):
         return "❌ " + err
 
     report = []
-    ok_all = True
+    pending = []
+    failed = False
     for f in files:
         path = f["path"]
         full = _resolve(path)
         if not _in_whitelist(full):
             report.append(f"❌ {path}：不在允许目录内")
-            ok_all = False
+            failed = True
             continue
         hit = _dangerous(full)
         if hit:
             report.append(f"❌ {path}：路径含危险关键词 {hit}")
-            ok_all = False
+            failed = True
             continue
         if not os.path.exists(full):
             report.append(f"❌ {path}：文件不存在（新建请用 write_file）")
-            ok_all = False
+            failed = True
             continue
         try:
             with open(full, "r", encoding="utf-8", errors="replace") as fh:
                 content = fh.read()
         except Exception as e:
             report.append(f"❌ {path}：读取失败 {e}")
-            ok_all = False
+            failed = True
             continue
 
         text, why = _apply_hunks(content, f["hunks"])
         if why:
             report.append(f"❌ {path}：{why}")
-            ok_all = False
+            failed = True
             continue
         if full.lower().endswith(".py"):
             try:
                 compile(text, full, "exec")
             except SyntaxError as e:
                 report.append(f"❌ {path}：改完语法不对（第 {e.lineno} 行 {e.msg}），没有写入")
-                ok_all = False
+                failed = True
                 continue
 
         plus, minus = _stat(f["hunks"])
-        if dry_run:
+        pending.append((full, text, path, plus, minus))
+
+    # 两阶段：全部校验通过才动笔。一个文件都不能落下，避免「改了一半」的中间态。
+    if failed:
+        return ("⚠️ 校验没通过，整批没有写入（只要有一段对不上，任何一个文件都不动）\n"
+                + "\n".join(report))
+    if dry_run:
+        for _, _, path, plus, minus in pending:
             report.append(f"✅ {path}：可以打上（+{plus} / -{minus}），dry_run 未写入")
-            continue
+        return "🔍 dry_run 校验完成，全部能打上\n" + "\n".join(report)
+
+    for full, text, path, plus, minus in pending:
         msg = write_file(full, text)
         if msg.startswith("✅"):
             report.append(f"✅ {path}：+{plus} / -{minus} 已写入")
         else:
             report.append(f"❌ {path}：{msg}")
-            ok_all = False
-
-    head = "✅ patch 全部落地" if ok_all and not dry_run else (
-        "🔍 dry_run 校验完成" if dry_run and ok_all
-        else "⚠️ 部分没打上：成功的文件已写入，失败的那个没动（见下）")
-    return head + "\n" + "\n".join(report)
+    return "✅ patch 全部落地\n" + "\n".join(report)
 
 
 def register_patch_tool(registry):
