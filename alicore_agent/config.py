@@ -114,9 +114,7 @@ class Config:
                 name, base = "智谱 GLM", base or "https://open.bigmodel.cn/api/paas/v4"
             elif "anthropic" in base:
                 name = "Anthropic"
-            elif not base and key:
-                # 老用户只存了 glm_key、没存地址：按智谱补一个
-                name, base = "智谱 GLM", "https://open.bigmodel.cn/api/paas/v4"
+            # 只存了 key、没存地址的，不猜；让用户自己填一次中转站地址
             if not (base and key):
                 return
             pid = "p1"

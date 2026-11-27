@@ -1995,15 +1995,15 @@ button.paint-mode-chip:hover, button.paint-mode-chip.active { color:#dffff4; bor
     <h3>接入模型</h3>
     <p>去服务商官网申请一个 API Key，把它的 Base URL 和 Key 填进来。连得上、读得到模型列表才算接入成功。</p>
     <label for="provNameInput">服务商名称（自己起，方便认）</label>
-    <input type="text" id="provNameInput" placeholder="DeepSeek">
+    <input type="text" id="provNameInput" placeholder="我的中转站">
     <label for="provBaseInput">Base URL</label>
-    <input type="text" id="provBaseInput" placeholder="https://api.deepseek.com/v1">
+    <input type="text" id="provBaseInput" placeholder="https://你的中转站地址/v1">
     <label for="provKeyInput">API Key</label>
     <input type="password" id="provKeyInput" placeholder="sk-...">
     <div class="api-error" id="apiError" hidden></div>
     <div class="modal-actions"><button class="btn" onclick="closeApi()">取消</button><button class="btn primary" onclick="connectProvider()">接入并读取模型</button></div>
     <div class="provider-list" id="providerList"></div>
-    <div class="api-tip">不知道填什么？去服务商官网的「API 文档 / 快速开始」页，那里会写 Base URL。DeepSeek 一般是 https://api.deepseek.com，OpenAI 兼容中转一般以 /v1 结尾。</div>
+    <div class="api-tip">不知道填什么？去你用的中转站 / 服务商后台，找「API 文档 / 接入地址」那一栏。Base URL 一般填到 /v1 为止；填域名也行，程序会自动补 /v1。</div>
   </div>
 </div>
 

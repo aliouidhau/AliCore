@@ -30,7 +30,7 @@ AliCore/
 2. **接入模型**（第一次打开时模型菜单是空的，这是故意的）：
    - 点输入框右侧的模型按钮 →「接入 API」
    - 填服务商名字 + Base URL + API Key；程序会去 `GET {Base URL}/v1/models` 真的拉一次模型列表，拉到了才算接入成功
-   - Base URL 一般填到 `/v1` 为止，例如 `https://api.deepseek.com/v1`；填域名也行，程序会自动补 `/v1`
+   - Base URL 一般填到 `/v1` 为止，例如 `https://你的中转站地址/v1`；填域名也行，程序会自动补 `/v1`
    - Key 存在 `%APPDATA%\AliCore\secrets.json`，不写进 config.json，也不下发给界面
    - 目前只支持 OpenAI 兼容协议的服务商；Anthropic 原生协议不支持
 3. **启动**
