@@ -35,9 +35,7 @@ AliCore/
 
 ### 方式一：使用预编译包
 
-前往 [Releases](https://github.com/aliouidhau/AliCore/releases) 页面下载 `阿鲤-开源版-v1.0.zip`，解压后双击 `阿鲤.exe` 启动。
-
-如果 Releases 里暂时没有包，请使用下方的方式二从源码运行。
+前往 [Releases](https://github.com/aliouidhau/AliCore/releases/latest) 页面下载 `alicore-v1.0.0.zip`（约 64 MB），解压后双击 `阿鲤.exe` 启动。
 
 整个 `阿鲤` 文件夹需要一并保留。程序界面、教学靶场与运行依赖位于 `_internal` 目录，单独复制 exe 无法运行。
 
