@@ -61,16 +61,21 @@ C 语言需要 TinyCC：仓库不打包编译器。首次点 C 教程或 C 题�
 - **摘要**：默认只在上下文压力到 75% 时触发，不再每 6 轮硬摘。`summary_every` 填 0 就是不按轮数摘要。
 - **单条消息**：默认不截断。老版写死 400 字符，一条长回答会被腰斩。
 
-常驻工具（每轮都在清单里）：
+常驻工具（每轮都在清单里，15 个）：
 
-`read_file` / `list_files` / `write_file` / `edit_file` / `search_text` / `run_command` / `run_python` / `http_get` / `todo_write` / `todo_read` / `remember` / `search_memory`
+`read_file` / `list_files` / `write_file` / `edit_file` / `apply_patch` / `search_text` / `run_command` / `run_python` / `http_get` / `web_search` / `todo_write` / `todo_read` / `remember` / `search_memory` / `dispatch_subagent`
 
+- `apply_patch`：一次提交多处改动的统一 diff，逐段精确匹配；对不上就报哪段没对上，不会改进错误的行
 - `run_command`：git / npm / pip / pytest / 构建，`cwd` 指定工作目录
 - `run_python`：隔离环境里跑 Python，要第三方库时用它
 - `http_get`：抓公网网页或接口，本机/内网地址拒绝
+- `web_search`：联网搜索，key 自己填（Tavily / 博查 / Serper），仓库不内置任何搜索 key
 - `todo_write` / `todo_read`：多步任务先列清单，模型自己勾进度
+- `dispatch_subagent`：把一件独立的事派给子 agent，它有自己的上下文，主对话只收结论；子 agent 不能再派子 agent
 
-`run_command`、`run_python`、`edit_file`、`delete_file`、`move_file`、`open_path` 执行前会在界面弹「允许一次」。安全模式下只留只读工具。
+执行隔离：`sandbox: true`（默认）按 **Docker 断网容器 → cocoon 子进程 → 本地受限 exec** 依次降级。每次 `run_python` 的返回开头会标 `[docker·断网容器]` / `[cocoon·子进程]` / `[local·未隔离]`，一眼能看出这次到底隔离没隔离。
+
+`run_command`、`run_python`、`edit_file`、`apply_patch`、`delete_file`、`move_file`、`open_path` 执行前会在界面弹「允许一次」。安全模式下只留只读工具。
 
 ## 语音怎么来（仓库不带音频）
 

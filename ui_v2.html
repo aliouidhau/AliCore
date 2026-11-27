@@ -2059,6 +2059,27 @@ button.paint-mode-chip:hover, button.paint-mode-chip.active { color:#dffff4; bor
       </div>
     </div>
 
+    <div class="settings-group">
+      <div class="settings-caption">SEARCH // 联网搜索</div>
+      <div class="setting-row">
+        <div><label for="prefSearchProvider">搜索服务商</label><small>不配也能用，只是模型调不到 web_search</small></div>
+        <select class="setting-select" id="prefSearchProvider">
+          <option value="">不配</option>
+          <option value="tavily">Tavily</option>
+          <option value="bocha">博查</option>
+          <option value="serper">Serper</option>
+        </select>
+      </div>
+      <div class="setting-row">
+        <div><label for="prefSearchKey">API Key</label><small id="searchKeyState">—</small></div>
+        <input class="setting-input" type="password" id="prefSearchKey" placeholder="粘贴你自己的 key">
+      </div>
+      <div class="setting-row">
+        <div><span class="setting-name">保存</span><small>仓库不内置任何搜索 key，用你自己的额度</small></div>
+        <button class="btn mini" onclick="saveSearch()">保存搜索</button>
+      </div>
+    </div>
+
     <div class="modal-actions" style="margin-top:16px;"><button class="btn" onclick="resetPrefs()">恢复默认</button><button class="btn primary" onclick="closeSettings()">完成</button></div>
   </div>
 </div>
@@ -3033,6 +3054,12 @@ function openSettings() {
       const eff = document.getElementById('ctxEffective');
       if (inp) inp.value = b || '';
       if (eff) eff.textContent = b > 0 ? (b.toLocaleString() + ' 字符（手动）') : '自动，按模型上下文算';
+      const sel = document.getElementById('prefSearchProvider');
+      if (sel) sel.value = (c && c.search_provider) || '';
+      const sk = document.getElementById('searchKeyState');
+      if (sk) sk.textContent = (c && c.has_search_key)
+        ? ('已配置：' + (c.search_provider || '—') + '，留空不改')
+        : '未配置（填 key 才能搜）';
     }).catch(() => {});
   }
   showModal(settingsModal);
@@ -3046,6 +3073,21 @@ function saveCtxBudget() {
     const eff = document.getElementById('ctxEffective');
     if (eff) eff.textContent = v > 0 ? (v.toLocaleString() + ' 字符（手动）') : ('自动，当前约 ' + (r.effective || 0).toLocaleString() + ' 字符');
     toast('上下文预算已更新');
+  }).catch(() => toast('保存失败'));
+}
+function saveSearch() {
+  const prov = (document.getElementById('prefSearchProvider') || {}).value || '';
+  const key = ((document.getElementById('prefSearchKey') || {}).value || '').trim();
+  if (!window.pywebview || !window.pywebview.api) return;
+  window.pywebview.api.set_search(prov, key).then(r => {
+    if (!r || !r.ok) { toast((r && r.error) || '保存失败'); return; }
+    const st = document.getElementById('searchKeyState');
+    if (st) st.textContent = r.has_search_key
+      ? ('已配置：' + (r.search_provider || '—') + '，留空不改')
+      : '未配置（填 key 才能搜）';
+    const inp = document.getElementById('prefSearchKey');
+    if (inp) inp.value = '';
+    toast('联网搜索已更新');
   }).catch(() => toast('保存失败'));
 }
 function closeSettings() { hideModal(settingsModal); }

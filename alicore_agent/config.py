@@ -32,6 +32,7 @@ DEFAULT_CONFIG = {
     "summary_every": 0,          # 0 = 只在上下文压力到阈值时摘要
     "context_window": 131072,
     "max_output_tokens": 8192,
+    "search_provider": "",       # tavily / bocha / serper，空=没配搜索
 }
 
 
@@ -94,6 +95,7 @@ class Config:
 
         keys = secrets.get("provider_keys")
         self.data["provider_keys"] = keys if isinstance(keys, dict) else {}
+        self.data["search_key"] = (secrets.get("search_key") or "").strip()
 
         # 老版本 config.json 里的明文 key / 单家配置：迁成第一个 provider，再清掉明文
         legacy = raw.get("openai_base_url") or raw.get("glm_key") or raw.get("api_key")
@@ -165,10 +167,13 @@ class Config:
             pass
 
     def save(self):
-        """provider_keys 进 secrets.json，config.json 只留空位。"""
+        """provider_keys / search_key 进 secrets.json，config.json 只留空位。"""
         keys = self.data.get("provider_keys") or {}
-        self._write_secrets({"provider_keys": keys})
-        out = {k: v for k, v in self.data.items() if k != "provider_keys"}
+        sec = {"provider_keys": keys}
+        if self.data.get("search_key"):
+            sec["search_key"] = self.data["search_key"]
+        self._write_secrets(sec)
+        out = {k: v for k, v in self.data.items() if k not in ("provider_keys", "search_key")}
         for k, v in DEFAULT_CONFIG.items():
             out.setdefault(k, v)
         atomic_write_json(self.path, out, mode=0o644)
@@ -239,6 +244,17 @@ class Config:
         self.data["current_model"] = model
         self.save()
 
+    def set_search(self, provider, key=""):
+        """配联网搜索：provider 名和 key 分开存，key 只进 secrets.json。"""
+        self.data["search_provider"] = (provider or "").strip().lower()
+        if key:
+            self.data["search_key"] = key.strip()
+        self.save()
+        return self.data["search_provider"]
+
+    def search_ready(self):
+        return bool(self.get("search_provider")) and bool(self.data.get("search_key"))
+
     # ---------------- 前端视图 ----------------
     def get(self, key, default=None):
         return self.data.get(key, default if default is not None else DEFAULT_CONFIG.get(key))
@@ -264,6 +280,8 @@ class Config:
             "history_char_budget": self.get("history_char_budget") or 0,
             "summary_every": self.get("summary_every") or 0,
             "context_window": self.get("context_window") or 131072,
+            "search_provider": self.get("search_provider") or "",
+            "has_search_key": bool(self.data.get("search_key")),
         }
 
     def describe_secrets(self):

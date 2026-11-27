@@ -58,6 +58,7 @@ CONFIRM_TOOLS = {
     "run_python": "执行一段 Python 代码",
     "run_command": "在本机执行一条命令（git/npm/pip/测试等）",
     "edit_file": "局部改写文件内容（改前会备份）",
+    "apply_patch": "按 diff 改多处内容（改前会备份，逐段校验）",
 }
 
 

@@ -25,6 +25,7 @@ from .tools_fs import register_fs_tools, configure_paths
 from .tools_docs import register_doc_tools, configure_storage as configure_doc_storage
 from .tools_sandbox import register_sandbox_tool
 from .tools_shell import register_shell_tools
+from .tools_patch import register_patch_tool
 from .plugins import install_plugin_tools, configure_storage
 
 __all__ = [
@@ -73,7 +74,8 @@ def build_agent(base_dir, data_dir=None, runtime_dir=None, app_dir=None, safe_mo
     register_fs_tools(registry)
     register_doc_tools(registry)
     register_sandbox_tool(registry, runtime)
-    register_shell_tools(registry, paths.data_dir)
+    register_shell_tools(registry, paths.data_dir, cfg=cfg)
+    register_patch_tool(registry)
     plugins = install_plugin_tools(registry, paths.data_dir)
 
     ledger = EventLedger(os.path.join(paths.data_dir, "events"))
@@ -85,4 +87,10 @@ def build_agent(base_dir, data_dir=None, runtime_dir=None, app_dir=None, safe_mo
     # 插件管理器跟着 agent 走，Api 层靠 agent.plugins 拿到它
     agent.plugins = plugins
     agent.paths = paths
+    registry.register(
+        "dispatch_subagent",
+        "派一个子 agent 独立跑完一件事，只回结论（中间过程不占主对话上下文）",
+        agent._run_subagent,
+        json_visible=True,
+    )
     return agent

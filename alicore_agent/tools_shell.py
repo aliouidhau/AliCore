@@ -23,7 +23,7 @@ _BANNED = (
 _MAX_OUT = 6000
 
 
-def register_shell_tools(registry, data_dir):
+def register_shell_tools(registry, data_dir, cfg=None):
     todo_file = os.path.join(data_dir, "todos.json")
 
     def run_command(command: str, cwd: str = "", timeout: int = 60):
@@ -138,6 +138,60 @@ def register_shell_tools(registry, data_dir):
             lines.append(f"{mark} {i}. {r.get('text') or ''}")
         return "\n".join(lines)
 
+    def web_search(query: str, count: int = 5):
+        """联网搜索。key 由用户在设置里自己填，仓库里不带任何内置 key。"""
+        q = (query or "").strip()
+        if not q:
+            return "❌ 搜索词为空"
+        provider = (cfg.get("search_provider") if cfg else "") or ""
+        key = ((cfg.data.get("search_key") or "") if cfg else "").strip()
+        if not provider or not key:
+            return ("❌ 还没配联网搜索。打开「设置 → 联网搜索」，选服务商（tavily / bocha / serper）"
+                    "并填上你自己的 key——这个仓库不内置任何搜索 key。")
+        n = max(1, min(int(count or 5), 10))
+        try:
+            if provider == "tavily":
+                r = requests.post("https://api.tavily.com/search", json={
+                    "api_key": key, "query": q, "max_results": n,
+                    "search_depth": "basic", "include_answer": False,
+                }, timeout=25)
+                r.raise_for_status()
+                items = [{"title": x.get("title"), "url": x.get("url"), "snippet": x.get("content")}
+                         for x in (r.json().get("results") or [])]
+            elif provider == "bocha":
+                r = requests.post("https://api.bochaai.com/v1/web-search",
+                                  headers={"Authorization": "Bearer " + key},
+                                  json={"query": q, "count": n, "summary": True, "page": 1},
+                                  timeout=25)
+                r.raise_for_status()
+                data = (r.json().get("data") or {}).get("webPages") or {}
+                items = [{"title": x.get("name"), "url": x.get("url"),
+                          "snippet": x.get("snippet") or x.get("summary")}
+                         for x in (data.get("value") or [])]
+            elif provider == "serper":
+                r = requests.post("https://google.serper.dev/search",
+                                  headers={"X-API-KEY": key, "Content-Type": "application/json"},
+                                  json={"q": q, "num": n}, timeout=25)
+                r.raise_for_status()
+                items = [{"title": x.get("title"), "url": x.get("link"), "snippet": x.get("snippet")}
+                         for x in (r.json().get("organic") or [])]
+            else:
+                return f"❌ 不认识的搜索服务商：{provider}（支持 tavily / bocha / serper）"
+        except requests.Timeout:
+            return "⏱ 搜索超时（25 秒）"
+        except requests.HTTPError as e:
+            body = (e.response.text[:200] if getattr(e, "response", None) is not None else str(e))
+            return f"❌ 搜索接口报错：{body}\n（key 不对或额度用完，去服务商后台看看）"
+        except Exception as e:
+            return f"❌ 搜索失败：{type(e).__name__}: {e}"
+        if not items:
+            return f"（没有搜到结果：{q}）"
+        out = []
+        for i, it in enumerate(items, 1):
+            snip = (it.get("snippet") or "").strip().replace("\n", " ")[:400]
+            out.append(f"{i}. {it.get('title') or '(无标题)'}\n   {it.get('url') or ''}\n   {snip}")
+        return f"搜索「{q}」前 {len(items)} 条（{provider}）：\n" + "\n".join(out)
+
     # ---- 常驻：干活的主力，每轮都该看得见 ----
     registry.register(
         "run_command",
@@ -149,6 +203,12 @@ def register_shell_tools(registry, data_dir):
         "http_get",
         "抓公网网页或接口，返回状态码 + 文本（JSON 会格式化）",
         http_get,
+        json_visible=True,
+    )
+    registry.register(
+        "web_search",
+        "联网搜索（用户自备 key）。返回标题 + 链接 + 摘要",
+        web_search,
         json_visible=True,
     )
     registry.register(

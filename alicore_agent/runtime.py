@@ -223,8 +223,8 @@ class DockerRuntime(BaseRuntime):
                                   timeout=timeout, encoding="utf-8", errors="replace")
             out, err = _truncate(proc.stdout, OUT_LIMIT), _truncate(proc.stderr, ERR_LIMIT)
             if proc.returncode == 0:
-                return f"✅ 沙箱执行成功：\n{out}" if out else "✅ 执行成功（无输出）"
-            return f"⚠️ 报错：\n{out}\n{err}"
+                return f"✅ [docker·断网容器] 执行成功：\n{out}" if out else "✅ [docker·断网容器] 执行成功（无输出）"
+            return f"⚠️ [docker·断网容器] 报错：\n{out}\n{err}"
         except subprocess.TimeoutExpired:
             return f"❌ 执行超时（{timeout}秒），已终止。"
         except Exception as e:
@@ -260,8 +260,9 @@ class LocalRuntime(BaseRuntime):
 
         out = _truncate(buf.getvalue(), OUT_LIMIT)
         if err:
-            return f"⚠️ 本地执行报错（{cost}s）：\n{err}\n{out}"
-        return f"✅ 本地执行成功（{cost}s）：\n{out}" if out else f"✅ 执行成功（{cost}s，无输出）"
+            return f"⚠️ [local·未隔离] 执行报错（{cost}s）：\n{err}\n{out}"
+        return (f"✅ [local·未隔离] 执行成功（{cost}s）：\n{out}" if out
+                else f"✅ [local·未隔离] 执行成功（{cost}s，无输出）")
 
 
 class CocoonRuntime(BaseRuntime):
@@ -351,8 +352,8 @@ class CocoonRuntime(BaseRuntime):
             if data.get("oom_killed"):
                 return "❌ 内存超限，已终止。"
             if data.get("exit_code") == 0:
-                return f"✅ 沙箱执行成功：\n{out}" if out else "✅ 执行成功（无输出）"
-            return f"⚠️ 报错：\n{out}\n{err}"
+                return f"✅ [cocoon·子进程] 执行成功：\n{out}" if out else "✅ [cocoon·子进程] 执行成功（无输出）"
+            return f"⚠️ [cocoon·子进程] 报错：\n{out}\n{err}"
         except subprocess.TimeoutExpired:
             return f"❌ 执行超时（{timeout}秒），已终止。"
         except Exception as e:
@@ -391,6 +392,15 @@ class LazyRuntime(BaseRuntime):
                 cocoon_bin=self.cocoon_bin,
             )
         return self._real.run_python(code, timeout)
+
+    def describe(self):
+        """当前真正在用哪一级隔离；还没探测过就说「未探测」。"""
+        if self._real is None:
+            return "未探测（第一次 run_python 时决定：docker > cocoon > local）"
+        mine = {"docker": "docker（断网容器）",
+                "cocoon": "cocoon（子进程隔离）",
+                "local": "local（未隔离，只挡危险调用）"}
+        return mine.get(self._real.name, self._real.name)
 
 
 def make_runtime(work_dir, prefer_docker=True, temp_dir=None, cocoon_bin=None):

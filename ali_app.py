@@ -572,6 +572,21 @@ class Api:
         auto = self._agent._char_budget() if hasattr(self._agent, "_char_budget") else 0
         return {"ok": True, "history_char_budget": v, "effective": auto}
 
+    def set_search(self, provider="", key=""):
+        """配联网搜索。key 只进 secrets.json，前端只拿 has_search_key。"""
+        if getattr(self, "safe_mode", False):
+            return {"ok": False, "error": "🔒 安全模式已禁用密钥写入"}
+        p = (provider or "").strip().lower()
+        if p and p not in ("tavily", "bocha", "serper"):
+            return {"ok": False, "error": "只支持 tavily / bocha / serper"}
+        k = (key or "").strip()
+        cfg = self._agent.config
+        if p and not k and not cfg.data.get("search_key"):
+            return {"ok": False, "error": "填一下这个服务商的 key"}
+        cfg.set_search(p, k)
+        return {"ok": True, "search_provider": cfg.get("search_provider") or "",
+                "has_search_key": bool(cfg.data.get("search_key"))}
+
     def remove_provider(self, provider_id=""):
         pid = (provider_id or "").strip()
         if not pid:
@@ -2343,7 +2358,9 @@ class Api:
             "trace": self._agent.events.as_list(),
             "summary": self._agent.events.summary(),
             "stats": stats,
-            "runtime": self._agent.runtime.name,
+            "runtime": (self._agent.runtime.describe()
+                        if hasattr(self._agent.runtime, "describe")
+                        else self._agent.runtime.name),
             "session_id": self._agent.events.session_id,
             "safe_mode": bool(self.safe_mode),
         }

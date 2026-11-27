@@ -774,6 +774,68 @@ class BaseStationAgent:
                 "一次提交整串步骤，别一步一调。不要改用写宏、VBA 或外部脚本代替，工具报错时把原始错误说清楚。")
 
     # ---------------- JSON 通道（多轮） ----------------
+    # ---------------- 子 agent ----------------
+    SUB_REPORT_CHARS = 3000
+
+    def _run_subagent(self, objective: str, max_steps: int = 8):
+        """把一个独立子任务丢进自己的上下文跑，主对话只收结论。
+
+        适合「把这个目录查清楚」「跑一遍测试并把失败原因整理出来」这类
+        要来回十几轮、但中间过程主对话不该背着的活。子 agent 看不到主对话历史，
+        也调不到 dispatch_subagent（防递归），工具结果照样按 RESULT_LIMIT 截断。
+        """
+        obj = (objective or "").strip()
+        if not obj:
+            return "❌ 子任务描述为空"
+        steps = max(2, min(int(max_steps or 8), 16))
+        self._check_cancel()
+
+        system = (
+            "你是阿鲤派出去的子 agent。只负责这一件事，做完就回结论。\n"
+            "规则：不问用户问题；不调用 dispatch_subagent（递归会被拒）；"
+            "要动文件就用工具，别在回复里贴大段代码。\n"
+            "最后一条消息直接给结果：结论 + 关键证据（路径 / 命令 / 报错行）。"
+        )
+        msgs = [{"role": "system", "content": system},
+                {"role": "user", "content": obj}]
+        schemas = [s for s in self.registry.json_schemas(None)
+                   if (s.get("function") or {}).get("name") != "dispatch_subagent"]
+
+        for step in range(1, steps + 1):
+            self._check_cancel()
+            resp = self._call(msgs, tools=schemas, temperature=0.45)
+            calls = resp.get("tool_calls") or []
+            content = resp.get("content") or ""
+            if not calls:
+                return _clip_result(content.strip() or "（子任务没给结论）", self.SUB_REPORT_CHARS)
+            msgs.append({"role": "assistant", "content": content, "tool_calls": calls})
+            for tc in calls:
+                fn = tc.get("function") or {}
+                name = fn.get("name") or ""
+                try:
+                    args = json.loads(fn.get("arguments") or "{}")
+                except Exception:
+                    args = {}
+                if name == "dispatch_subagent":
+                    result = "❌ 子 agent 不能再派子 agent"
+                else:
+                    try:
+                        brief = json.dumps(args, ensure_ascii=False)[:80]
+                    except Exception:
+                        brief = ""
+                    self.events.emit("action", label="子:" + name, args=brief)
+                    result = self.registry.call(name, args)
+                    if len(result) > RESULT_LIMIT:
+                        result = _clip_result(result, RESULT_LIMIT)
+                msgs.append({"role": "tool",
+                             "tool_call_id": tc.get("id") or name,
+                             "content": result})
+
+        msgs.append({"role": "system", "content": "步数用完了，直接给结论，不要再调工具。"})
+        resp = self._call(msgs, tools=None, temperature=0.5)
+        out = (resp.get("content") or "").strip() or "（步数用完了也没给出结论）"
+        return _clip_result(out, self.SUB_REPORT_CHARS)
+
     def _run_json(self, user_text, history, model_name=None):
         # 时间和记忆检索每轮都变，必须放在请求最末尾——不能进 system。
         # system 一旦带上它们，后面 tools + 整段历史的前缀缓存全部作废
