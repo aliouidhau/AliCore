@@ -1,0 +1,36 @@
+﻿# ---- 用户数据：运行时生成，永不入库 ----
+config.json
+secrets.json
+chat_history.json
+sessions/
+knowledge/
+output/
+events/
+plugins_state.json
+ui_preferences.json
+deepseek_spending.json
+workspace/_progress.json
+workspace/practice_answers.json
+
+# ---- 运行时产物 ----
+_backup/
+_runtime/
+_sandbox_tmp/
+*.log
+*.bak
+*.bak_*
+
+# ---- 构建产物 ----
+build/
+dist/
+**/__pycache__/
+*.pyc
+test_selftest.pdf
+test_selftest.pptx
+
+# ---- 语音：音频二进制不进仓库，用 tools/ 自己合成 ----
+assets/voice/
+
+# ---- 本地环境 ----
+.venv/
+venv/

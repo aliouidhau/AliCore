@@ -1,0 +1,16 @@
+# 桌面基站的运行依赖。重建 venv 后按这个装一遍。
+#
+# 版本是 2026-11-08 实测在用的那套，不是"大概能跑"。
+# jieba 不是可选项：历史检索靠它分词，缺了会退回 4-gram，效果明显变差（见 memory.py 的兜底注释）。
+pywebview==6.2.1
+pythonnet==3.2.1
+clr_loader==0.3.1
+requests==2.34.2
+pillow==12.3.0
+jieba==0.42.1
+
+# 文档工具（tools_docs.py）：PDF / Word / PPT。缺了 make_* 三个工具会导入失败。
+python-pptx==1.0.2
+python-docx==1.2.0
+reportlab==5.1.0
+pypdf==7.1.0

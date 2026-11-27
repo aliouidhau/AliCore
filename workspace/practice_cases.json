@@ -1,0 +1,1325 @@
+{
+  "cases": [
+    {
+      "id": "py01",
+      "level": 1,
+      "lang": "python",
+      "topic": "循环边界",
+      "title": "库存少算一件",
+      "question": "为什么库存总数少了一件？",
+      "description": "5 种零件合计应为 57 件，现在只输出 41。先运行，找出循环里的问题，只改 total_qty。",
+      "starter": "parts = [\n    {\"name\": \"轴承\", \"qty\": 12},\n    {\"name\": \"齿轮\", \"qty\": 8},\n    {\"name\": \"电机\", \"qty\": 15},\n    {\"name\": \"皮带\", \"qty\": 6},\n    {\"name\": \"螺栓\", \"qty\": 16},\n]\n\n\ndef total_qty(items):\n    total = 0\n    for i in range(len(items) - 1):\n        total += items[i][\"qty\"]\n    return total\n\n\nprint(total_qty(parts))\n",
+      "check": {
+        "kind": "python",
+        "test": "assert total_qty(parts) == 57"
+      },
+      "mode": "fix"
+    },
+    {
+      "id": "c01",
+      "level": 2,
+      "lang": "c",
+      "topic": "条件分支",
+      "title": "59 分也显示及格",
+      "question": "为什么 59 分会被判定为及格？",
+      "description": "改 grade()：59 分应不及格，60 分及以上应及格。只改判断逻辑。",
+      "starter": "#include <stdio.h>\n\nconst char *grade(int score) {\n    if (score >= 60);\n    {\n        return \"及格\";\n    }\n    return \"不及格\";\n}\n\nint main(void) {\n    setbuf(stdout, NULL);\n    printf(\"%s\\n\", grade(59));\n    return 0;\n}\n",
+      "check": {
+        "kind": "c_function",
+        "test": "if (strcmp(grade(59), \"不及格\") != 0) return 1; if (strcmp(grade(60), \"及格\") != 0) return 1; if (strcmp(grade(90), \"及格\") != 0) return 1; return 0;"
+      },
+      "mode": "fix"
+    },
+    {
+      "id": "py02",
+      "level": 3,
+      "lang": "python",
+      "topic": "条件边界",
+      "title": "18 岁还不能投票",
+      "question": "为什么刚满 18 岁也被判成不能投票？",
+      "description": "规则是年满 18 岁可投票。只改 can_vote，让 18 岁通过、17 岁不通过。",
+      "starter": "def can_vote(age):\n    if age > 18:\n        return True\n    return False\n\n\nprint(can_vote(18))\n",
+      "check": {
+        "kind": "python",
+        "test": "assert can_vote(18) == True and can_vote(17) == False and can_vote(20) == True"
+      },
+      "mode": "fix"
+    },
+    {
+      "id": "c02",
+      "level": 4,
+      "lang": "c",
+      "topic": "数组边界",
+      "title": "求和多加了 99",
+      "question": "为什么只求前 4 个数，结果却多了 99？",
+      "description": "数组后面还有一个额外元素 99。只统计前 n 个数，只改 sum_first。",
+      "starter": "#include <stdio.h>\n\nint sum_first(int *values, int n) {\n    int sum = 0;\n    for (int i = 0; i <= n; i++) {\n        sum += values[i];\n    }\n    return sum;\n}\n\nint main(void) {\n    int data[] = {1, 2, 3, 4, 99};\n    printf(\"%d\\n\", sum_first(data, 4));\n    return 0;\n}\n",
+      "check": {
+        "kind": "c_function",
+        "test": "int data[] = {1, 2, 3, 4, 99}; if (sum_first(data, 4) != 10) return 1; if (sum_first(data, 2) != 3) return 1; return 0;"
+      },
+      "mode": "fix"
+    },
+    {
+      "id": "py06",
+      "level": 5,
+      "lang": "python",
+      "topic": "类型与除法",
+      "title": "平均单价少了几毛",
+      "question": "为什么 3 件商品总价 100 元，平均单价算成了 33 元？",
+      "description": "平均单价应为 33.33。先运行，看看除法结果为什么被截断，只改 average_price。",
+      "starter": "def average_price(total, count):\n    return total // count\n\n\nprint(average_price(100, 3))\n",
+      "check": {
+        "kind": "python",
+        "test": "assert abs(average_price(100, 3) - 33.3333) < 0.01\nassert abs(average_price(80, 2) - 40.0) < 0.01"
+      },
+      "mode": "fix"
+    },
+    {
+      "id": "c07",
+      "level": 6,
+      "lang": "c",
+      "topic": "字符串遍历",
+      "title": "字符串长度多算一位",
+      "question": "为什么 hello 的长度输出成 6？",
+      "description": "遍历到 \\0 就停，长度不包含终止符。只改 text_length 的返回值。",
+      "starter": "#include <stdio.h>\n\nint text_length(const char *s) {\n    int count = 0;\n    while (*s != '\\0') {\n        count++;\n        s++;\n    }\n    return count + 1;\n}\n\nint main(void) {\n    printf(\"%d\\n\", text_length(\"hello\"));\n    return 0;\n}\n",
+      "check": {
+        "kind": "c_function",
+        "test": "if (text_length(\"hello\") != 5) return 1; if (text_length(\"\") != 0) return 1; if (text_length(\"a\") != 1) return 1; return 0;"
+      },
+      "mode": "fix"
+    },
+    {
+      "id": "py07",
+      "level": 7,
+      "lang": "python",
+      "topic": "条件顺序",
+      "title": "95 分只拿了 D",
+      "question": "为什么 95 分被判定成 D，而不是 A？",
+      "description": "等级规则从高到低判断：90+ 为 A，80+ 为 B，70+ 为 C，60+ 为 D。只改判断顺序。",
+      "starter": "def grade(score):\n    if score >= 60:\n        return \"D\"\n    if score >= 70:\n        return \"C\"\n    if score >= 80:\n        return \"B\"\n    if score >= 90:\n        return \"A\"\n    return \"F\"\n\n\nprint(grade(95))\n",
+      "check": {
+        "kind": "python",
+        "test": "assert grade(95) == 'A' and grade(85) == 'B' and grade(75) == 'C' and grade(65) == 'D' and grade(50) == 'F'"
+      },
+      "mode": "fix"
+    },
+    {
+      "id": "c06",
+      "level": 8,
+      "lang": "c",
+      "topic": "整数除法",
+      "title": "平均分被抹成整数",
+      "question": "为什么 90、80、75 的平均分显示成 81.00？",
+      "description": "平均分应为 81.67。只改 average 的除法，让它保留小数。",
+      "starter": "#include <stdio.h>\n\ndouble average(int *scores, int n) {\n    int sum = 0;\n    for (int i = 0; i < n; i++) {\n        sum += scores[i];\n    }\n    return sum / n;\n}\n\nint main(void) {\n    int scores[] = {90, 80, 75};\n    printf(\"%.2f\\n\", average(scores, 3));\n    return 0;\n}\n",
+      "check": {
+        "kind": "c_function",
+        "test": "int s[] = {90, 80, 75}; double a = average(s, 3); if (a < 81.66 || a > 81.67) return 1; int t[] = {100, 90}; if (average(t, 2) != 95.0) return 1; return 0;"
+      },
+      "mode": "fix"
+    },
+    {
+      "id": "py03",
+      "level": 9,
+      "lang": "python",
+      "topic": "字典合并",
+      "title": "新零件把程序弄崩了",
+      "question": "为什么合并新零件时程序直接崩了？",
+      "description": "把 b 合并进 a：原有数量相加，新零件也要保留。只改 merge_stock。",
+      "starter": "def merge_stock(a, b):\n    result = {}\n    for name, qty in a.items():\n        result[name] = qty\n    for name, qty in b.items():\n        result[name] += qty\n    return result\n\n\nstock_a = {\"轴承\": 12, \"齿轮\": 8}\nstock_b = {\"轴承\": 3, \"皮带\": 5}\nprint(merge_stock(stock_a, stock_b))\n",
+      "check": {
+        "kind": "python",
+        "test": "assert merge_stock({\"轴承\": 12, \"齿轮\": 8}, {\"轴承\": 3, \"皮带\": 5}) == {\"轴承\": 15, \"齿轮\": 8, \"皮带\": 5}"
+      },
+      "mode": "fix"
+    },
+    {
+      "id": "c04",
+      "level": 10,
+      "lang": "c",
+      "topic": "结构体数组",
+      "title": "三种零件只算成一种",
+      "question": "为什么三种零件加起来总是第一种的数量？",
+      "description": "结构体数组里有 3 个零件，合计应为 33。只改 total_qty，让每个元素都参与统计。",
+      "starter": "#include <stdio.h>\n\ntypedef struct {\n    char name[16];\n    int qty;\n} Part;\n\nint total_qty(Part *parts, int n) {\n    int total = 0;\n    for (int i = 0; i < n; i++) {\n        total += parts[0].qty;\n    }\n    return total;\n}\n\nint main(void) {\n    Part parts[] = {{\"轴承\", 10}, {\"齿轮\", 8}, {\"皮带\", 15}};\n    printf(\"%d\\n\", total_qty(parts, 3));\n    return 0;\n}\n",
+      "check": {
+        "kind": "c_function",
+        "test": "Part p[] = {{\"A\", 10}, {\"B\", 8}, {\"C\", 15}}; if (total_qty(p, 3) != 33) return 1; return 0;"
+      },
+      "mode": "fix"
+    },
+    {
+      "id": "c03",
+      "level": 11,
+      "lang": "c",
+      "topic": "指针交换",
+      "title": "指针传进去了还是没交换",
+      "question": "为什么指针传进去了，x 和 y 还是没交换？",
+      "description": "函数参数已经是指针；要交换指针指向的值，不是交换指针本身。只改 swap。",
+      "starter": "#include <stdio.h>\n\nvoid swap(int *a, int *b) {\n    int *temp = a;\n    a = b;\n    b = temp;\n}\n\nint main(void) {\n    int x = 3, y = 7;\n    swap(&x, &y);\n    printf(\"%d %d\\n\", x, y);\n    return 0;\n}\n",
+      "check": {
+        "kind": "c_function",
+        "test": "int x = 3, y = 7; swap(&x, &y); if (x != 7 || y != 3) return 1; int a = -1, b = 5; swap(&a, &b); if (a != 5 || b != -1) return 1; return 0;"
+      },
+      "mode": "fix"
+    },
+    {
+      "id": "py08",
+      "level": 12,
+      "lang": "python",
+      "topic": "列表与空值",
+      "title": "空列表把平均函数弄崩",
+      "question": "为什么传入空列表时程序会崩？",
+      "description": "空列表应返回 0；非空列表返回正常平均值。只改 average。",
+      "starter": "def average(items):\n    return sum(items) / len(items)\n\n\nprint(average([10, 20, 30]))\n",
+      "check": {
+        "kind": "python",
+        "test": "assert average([10, 20, 30]) == 20.0\nassert average([]) == 0"
+      },
+      "mode": "fix"
+    },
+    {
+      "id": "c08",
+      "level": 13,
+      "lang": "c",
+      "topic": "结构体指针",
+      "title": "数量传进去却没改",
+      "question": "为什么调用 set_qty 之后，零件数量还是 5？",
+      "description": "set_qty 收到的是结构体指针，要改它指向的 qty。只改 set_qty 里的赋值。",
+      "starter": "#include <stdio.h>\n\ntypedef struct {\n    char name[16];\n    int qty;\n} Part;\n\nvoid set_qty(Part *part, int qty) {\n    part->qty == qty;\n}\n\nint main(void) {\n    Part p = {\"轴承\", 5};\n    set_qty(&p, 12);\n    printf(\"%d\\n\", p.qty);\n    return 0;\n}\n",
+      "check": {
+        "kind": "c_function",
+        "test": "Part p = {\"A\", 5}; set_qty(&p, 12); if (p.qty != 12) return 1; Part q = {\"B\", 0}; set_qty(&q, 3); if (q.qty != 3) return 1; return 0;"
+      },
+      "mode": "fix"
+    },
+    {
+      "id": "py04",
+      "level": 14,
+      "lang": "python",
+      "topic": "异常处理",
+      "title": "输入字母程序就崩",
+      "question": "为什么输入非数字时程序会崩？",
+      "description": "数字转整数；非数字和空字符串都返回 0。只改 to_int，让三种输入都能跑。",
+      "starter": "def to_int(text):\n    return int(text)\n\n\nfor value in [\"12\", \"abc\", \"\"]:\n    print(to_int(value))\n",
+      "check": {
+        "kind": "python",
+        "test": "assert to_int(\"12\") == 12 and to_int(\"abc\") == 0 and to_int(\"\") == 0"
+      },
+      "mode": "fix"
+    },
+    {
+      "id": "c09",
+      "level": 15,
+      "lang": "c",
+      "topic": "排序与循环边界",
+      "title": "冒泡排序最后一个总排错",
+      "question": "为什么排序后最后一个数还是乱的？",
+      "description": "内层循环少比较了一轮，最大的数没有沉到末尾。只改内层循环的边界。",
+      "starter": "#include <stdio.h>\n\nvoid sort_numbers(int *a, int n) {\n    for (int i = 0; i < n - 1; i++) {\n        for (int j = 0; j < n - i - 2; j++) {\n            if (a[j] > a[j + 1]) {\n                int temp = a[j];\n                a[j] = a[j + 1];\n                a[j + 1] = temp;\n            }\n        }\n    }\n}\n\nint main(void) {\n    int a[] = {5, 2, 9, 1};\n    sort_numbers(a, 4);\n    for (int i = 0; i < 4; i++) {\n        printf(\"%d \", a[i]);\n    }\n    printf(\"\\n\");\n    return 0;\n}\n",
+      "check": {
+        "kind": "c_function",
+        "test": "int a[] = {5, 2, 9, 1, 5, 6}; sort_numbers(a, 6); int want[] = {1, 2, 5, 5, 6, 9}; for (int i = 0; i < 6; i++) if (a[i] != want[i]) return 1; return 0;"
+      },
+      "mode": "fix"
+    },
+    {
+      "id": "py09",
+      "level": 16,
+      "lang": "python",
+      "topic": "函数默认参数",
+      "title": "购物车越加越多",
+      "question": "为什么第二次调用 add_item 时，第一个零件还在车里？",
+      "description": "每次调用都应得到独立购物车。先跑两次，注意默认参数是不是被共享了。只改 add_item。",
+      "starter": "def add_item(item, cart=[]):\n    cart.append(item)\n    return cart\n\n\nprint(add_item(\"轴承\"))\nprint(add_item(\"齿轮\"))\n",
+      "check": {
+        "kind": "python",
+        "test": "assert add_item('A') == ['A']\nassert add_item('B') == ['B']"
+      },
+      "mode": "fix"
+    },
+    {
+      "id": "c10",
+      "level": 17,
+      "lang": "c",
+      "topic": "指针与数组",
+      "title": "最大值指针总指向第一个",
+      "question": "为什么最大值函数返回的总是数组第一个元素？",
+      "description": "找到更大的值时要更新 best 指向的位置，而不是重新指回开头。只改 max_ptr。",
+      "starter": "#include <stdio.h>\n\nint *max_ptr(int *a, int n) {\n    int *best = &a[0];\n    for (int i = 1; i < n; i++) {\n        if (a[i] > *best) {\n            best = &a[0];\n        }\n    }\n    return best;\n}\n\nint main(void) {\n    int a[] = {3, 7, 2};\n    printf(\"%d\\n\", *max_ptr(a, 3));\n    return 0;\n}\n",
+      "check": {
+        "kind": "c_function",
+        "test": "int a[] = {3, 7, 9, 2}; int *p = max_ptr(a, 4); if (*p != 9) return 1; int b[] = {5, 1, 4}; if (*max_ptr(b, 3) != 5) return 1; return 0;"
+      },
+      "mode": "fix"
+    },
+    {
+      "id": "py05",
+      "level": 18,
+      "lang": "python",
+      "topic": "类与异常",
+      "title": "余额被取成负数",
+      "question": "为什么余额会被取成负数？",
+      "description": "取款超过余额时应拒绝，余额保持不变，并抛出 ValueError。只改 withdraw。",
+      "starter": "class Account:\n    def __init__(self, balance):\n        self.balance = balance\n\n    def withdraw(self, amount):\n        self.balance -= amount\n        return self.balance\n\n\naccount = Account(100)\nprint(account.withdraw(30))\ntry:\n    print(account.withdraw(80))\nexcept ValueError as e:\n    print(\"拒绝取款：\", e)\n",
+      "check": {
+        "kind": "python",
+        "test": "a = Account(100)\nassert a.withdraw(30) == 70\ntry:\n    a.withdraw(80)\nexcept ValueError:\n    pass\nelse:\n    assert False, \"overdraft not rejected\"\nassert a.balance == 70"
+      },
+      "mode": "fix"
+    },
+    {
+      "id": "c05",
+      "level": 19,
+      "lang": "c",
+      "topic": "字符串反转",
+      "title": "反转后还是原字符串",
+      "question": "为什么反转后字符串还是原来的？",
+      "description": "只反转前半段，别把刚换过去的又换回来。只改 reverse。",
+      "starter": "#include <stdio.h>\n#include <string.h>\n\nvoid reverse(char *s) {\n    int len = strlen(s);\n    for (int i = 0; i < len; i++) {\n        char temp = s[i];\n        s[i] = s[len - 1 - i];\n        s[len - 1 - i] = temp;\n    }\n}\n\nint main(void) {\n    char text[] = \"hello\";\n    reverse(text);\n    printf(\"%s\\n\", text);\n    return 0;\n}\n",
+      "check": {
+        "kind": "c_function",
+        "test": "char s[] = \"hello\"; reverse(s); if (strcmp(s, \"olleh\") != 0) return 1; char t[] = \"ab\"; reverse(t); if (strcmp(t, \"ba\") != 0) return 1; return 0;"
+      },
+      "mode": "fix"
+    },
+    {
+      "id": "py10",
+      "level": 20,
+      "lang": "python",
+      "topic": "字符串切片",
+      "title": "回文判断总说不是",
+      "question": "为什么 level 这种正着反着都一样的词，也判成不是回文？",
+      "description": "忽略大小写和空格后，正串应等于反串。只改 is_palindrome。",
+      "starter": "def is_palindrome(text):\n    clean = text.lower().replace(\" \", \"\")\n    return clean == clean[:-1]\n\n\nprint(is_palindrome(\"level\"))\n",
+      "check": {
+        "kind": "python",
+        "test": "assert is_palindrome('level') == True\nassert is_palindrome('hello') == False\nassert is_palindrome('A man a plan a canal Panama') == True"
+      },
+      "mode": "fix"
+    },
+    {
+      "id": "c11",
+      "level": 21,
+      "lang": "c",
+      "topic": "动态内存",
+      "title": "动态数组求和漏了最后一个",
+      "question": "为什么 1 到 5 的动态数组求和结果是 10，而不是 15？",
+      "description": "malloc 申请了 n 个元素，求和时也要遍历 n 个。只改求和循环的边界。",
+      "starter": "#include <stdio.h>\n#include <stdlib.h>\n\nint sum_dynamic(int n) {\n    int *a = malloc(sizeof(int) * n);\n    for (int i = 0; i < n; i++) {\n        a[i] = i + 1;\n    }\n    int total = 0;\n    for (int i = 0; i < n - 1; i++) {\n        total += a[i];\n    }\n    free(a);\n    return total;\n}\n\nint main(void) {\n    printf(\"%d\\n\", sum_dynamic(5));\n    return 0;\n}\n",
+      "check": {
+        "kind": "c_function",
+        "test": "if (sum_dynamic(5) != 15) return 1; if (sum_dynamic(1) != 1) return 1; return 0;"
+      },
+      "mode": "fix"
+    },
+    {
+      "id": "py11",
+      "level": 22,
+      "lang": "python",
+      "topic": "字符串分割",
+      "title": "日志条数少了一条",
+      "question": "为什么三条日志只数出两条？",
+      "description": "按行分割后，空行不算记录。先跑一次，看看 split 后的末尾发生了什么。只改 count_records。",
+      "starter": "def count_records(text):\n    lines = text.split(\"\\n\")\n    return len(lines) - 1\n\n\nprint(count_records(\"A\\nB\\nC\"))\n",
+      "check": {
+        "kind": "python",
+        "test": "assert count_records('A' + chr(10) + 'B' + chr(10) + 'C') == 3\nassert count_records('A' + chr(10) + 'B' + chr(10)) == 2"
+      },
+      "mode": "fix"
+    },
+    {
+      "id": "c12",
+      "level": 23,
+      "lang": "c",
+      "topic": "链表",
+      "title": "链表求和跳过了头节点",
+      "question": "为什么 1、2、3 三个节点的链表求和结果是 5？",
+      "description": "从 head 开始遍历，不要把第一个节点漏掉。只改 sum_list 的起点。",
+      "starter": "#include <stdio.h>\n\ntypedef struct Node {\n    int value;\n    struct Node *next;\n} Node;\n\nint sum_list(Node *head) {\n    int total = 0;\n    Node *p = head->next;\n    while (p != NULL) {\n        total += p->value;\n        p = p->next;\n    }\n    return total;\n}\n\nint main(void) {\n    Node c = {3, NULL};\n    Node b = {2, &c};\n    Node a = {1, &b};\n    printf(\"%d\\n\", sum_list(&a));\n    return 0;\n}\n",
+      "check": {
+        "kind": "c_function",
+        "test": "Node c = {3, NULL}; Node b = {2, &c}; Node a = {1, &b}; if (sum_list(&a) != 6) return 1; if (sum_list(NULL) != 0) return 1; return 0;"
+      },
+      "mode": "fix"
+    },
+    {
+      "id": "py12",
+      "level": 24,
+      "lang": "python",
+      "topic": "递归",
+      "title": "阶乘结果总是 0",
+      "question": "为什么 factorial(5) 输出 0，而不是 120？",
+      "description": "0 的阶乘定义为 1。只改递归的终止条件，不要改递归调用。",
+      "starter": "def factorial(n):\n    if n == 0:\n        return 0\n    return n * factorial(n - 1)\n\n\nprint(factorial(5))\n",
+      "check": {
+        "kind": "python",
+        "test": "assert factorial(0) == 1\nassert factorial(5) == 120"
+      },
+      "mode": "fix"
+    },
+    {
+      "id": "c13",
+      "level": 25,
+      "lang": "c",
+      "topic": "递归",
+      "title": "递归求和跳过了一半数字",
+      "question": "为什么 1 到 5 的递归求和结果是 9？",
+      "description": "每次应该只退一步，不能跳着退。只改递归调用里的步长。",
+      "starter": "#include <stdio.h>\n\nint sum_to(int n) {\n    if (n <= 0) {\n        return 0;\n    }\n    return n + sum_to(n - 2);\n}\n\nint main(void) {\n    printf(\"%d\\n\", sum_to(5));\n    return 0;\n}\n",
+      "check": {
+        "kind": "c_function",
+        "test": "if (sum_to(5) != 15) return 1; if (sum_to(1) != 1) return 1; if (sum_to(0) != 0) return 1; return 0;"
+      },
+      "mode": "fix"
+    },
+    {
+      "id": "py13",
+      "level": 26,
+      "lang": "python",
+      "topic": "类继承",
+      "title": "子类利率没有生效",
+      "question": "为什么 Savings 的利率还是 2%，而不是 3%？",
+      "description": "子类把 rate 设成了 0.03，但父类初始化时又覆盖了它。只改 __init__。",
+      "starter": "class Account:\n    rate = 0.02\n\n    def __init__(self, balance):\n        self.balance = balance\n        self.rate = 0.02\n\n    def year_end(self):\n        return round(self.balance * (1 + self.rate), 2)\n\n\nclass Savings(Account):\n    rate = 0.03\n\n\nprint(Savings(1000).year_end())\n",
+      "check": {
+        "kind": "python",
+        "test": "assert Savings(1000).year_end() == 1030.0\nassert Account(1000).year_end() == 1020.0"
+      },
+      "mode": "fix"
+    },
+    {
+      "id": "c14",
+      "level": 27,
+      "lang": "c",
+      "topic": "结构体与综合统计",
+      "title": "成绩统计最高分和平均分都错",
+      "question": "为什么最高分显示 0，平均分也少了小数？",
+      "description": "先找最高分，再算平均分；比较方向和除法类型都要改。只改 max_score 和 average_score。",
+      "starter": "#include <stdio.h>\n\ntypedef struct {\n    char name[16];\n    int score;\n} Student;\n\nint max_score(Student *s, int n) {\n    int best = 0;\n    for (int i = 0; i < n; i++) {\n        if (s[i].score < best) {\n            best = s[i].score;\n        }\n    }\n    return best;\n}\n\ndouble average_score(Student *s, int n) {\n    int total = 0;\n    for (int i = 0; i < n; i++) {\n        total += s[i].score;\n    }\n    return total / n;\n}\n\nint main(void) {\n    Student s[] = {{\"甲\", 90}, {\"乙\", 80}, {\"丙\", 75}, {\"丁\", 92}};\n    printf(\"%d %.2f\\n\", max_score(s, 4), average_score(s, 4));\n    return 0;\n}\n",
+      "check": {
+        "kind": "c_function",
+        "test": "Student s[] = {{\"A\", 90}, {\"B\", 80}, {\"C\", 75}, {\"D\", 92}}; if (max_score(s, 4) != 92) return 1; double avg = average_score(s, 4); if (avg < 84.24 || avg > 84.26) return 1; return 0;"
+      },
+      "mode": "fix"
+    },
+    {
+      "id": "py14",
+      "level": 28,
+      "lang": "python",
+      "topic": "多函数与类型",
+      "title": "报表合计拼成了字符串",
+      "question": "为什么合计显示成 108，而不是 18？",
+      "description": "数量是整数，合计应该做加法。先跑一次，看看 total 被拼成了什么类型。只改 make_report 里的累加。",
+      "starter": "def make_report(items):\n    total = \"\"\n    lines = []\n    for name, qty in items:\n        total += str(qty)\n        lines.append(f\"{name}: {qty}\")\n    lines.append(f\"合计: {total}\")\n    return \"\\n\".join(lines)\n\n\nprint(make_report([(\"轴承\", 10), (\"齿轮\", 8)]))\n",
+      "check": {
+        "kind": "python",
+        "test": "expected = '轴承: 10' + chr(10) + '齿轮: 8' + chr(10) + '合计: 18'\nassert make_report([('轴承', 10), ('齿轮', 8)]) == expected"
+      },
+      "mode": "fix"
+    },
+    {
+      "id": "c15",
+      "level": 29,
+      "lang": "c",
+      "topic": "字符串终止符",
+      "title": "复制字符串后多出一串乱码",
+      "question": "为什么 copy_text 复制完 hello 后，后面还跟着别的字符？",
+      "description": "字符串复制要手动补上 \\0 终止符。只改 copy_text。",
+      "starter": "#include <stdio.h>\n#include <string.h>\n\nvoid copy_text(char *dst, const char *src) {\n    int i = 0;\n    while (src[i] != '\\0') {\n        dst[i] = src[i];\n        i++;\n    }\n}\n\nint main(void) {\n    char buf[16] = \"XXXXXXXXXXXXXXX\";\n    copy_text(buf, \"hello\");\n    printf(\"%s\\n\", buf);\n    return 0;\n}\n",
+      "check": {
+        "kind": "c_function",
+        "test": "char buf[8]; memset(buf, 'X', 8); copy_text(buf, \"abc\"); if (strcmp(buf, \"abc\") != 0) return 1; char empty[4]; memset(empty, 'X', 4); copy_text(empty, \"\"); if (strcmp(empty, \"\") != 0) return 1; return 0;"
+      },
+      "mode": "fix"
+    },
+    {
+      "id": "py15",
+      "level": 30,
+      "lang": "python",
+      "topic": "多函数综合",
+      "title": "满 100 忘了打折",
+      "question": "为什么总价 110 元没有按九折结算？",
+      "description": "subtotal 算小计，discount_rate 判断折扣；final_total 应该把折扣用上。只改 final_total。",
+      "starter": "def subtotal(items):\n    return sum(price * qty for price, qty in items)\n\n\ndef discount_rate(total):\n    if total >= 100:\n        return 0.1\n    return 0\n\n\ndef final_total(items):\n    total = subtotal(items)\n    return total\n\n\nprint(final_total([(20, 3), (10, 5)]))\n",
+      "check": {
+        "kind": "python",
+        "test": "assert final_total([(20, 3), (10, 5)]) == 99.0\nassert final_total([(20, 4)]) == 80.0"
+      },
+      "mode": "fix"
+    },
+    {
+      "id": "perr01",
+      "level": 31,
+      "topic": "索引越界",
+      "title": "零件表读到最后一条就崩",
+      "question": "为什么运行到最后一个零件就报 IndexError？",
+      "description": "parts 里只有 2 个零件。运行看报错，想清楚 range 的上界。只改 total_qty 里那行 range。",
+      "starter": "parts = [\n    {\"name\": \"轴承\", \"qty\": 12},\n    {\"name\": \"齿轮\", \"qty\": 8},\n]\n\n\ndef total_qty(items):\n    total = 0\n    for i in range(len(items) + 1):\n        total += items[i][\"qty\"]\n    return total\n\n\nprint(total_qty(parts))\n",
+      "lang": "python",
+      "check": {
+        "kind": "python",
+        "test": "assert total_qty(parts) == 20\nassert total_qty([]) == 0"
+      },
+      "mode": "fix"
+    },
+    {
+      "id": "perr02",
+      "level": 32,
+      "topic": "键不存在",
+      "title": "查一个没有的零件就崩",
+      "question": "为什么查『垫圈』时程序直接报 KeyError？",
+      "description": "库里没有的零件应该返回 0，而不是崩。只改 get_qty 那一行（提示：字典有 .get）。",
+      "starter": "stock = {\"轴承\": 12, \"齿轮\": 8}\n\n\ndef get_qty(stock, name):\n    return stock[name]\n\n\nprint(get_qty(stock, \"垫圈\"))\n",
+      "lang": "python",
+      "check": {
+        "kind": "python",
+        "test": "assert get_qty({\"轴承\": 12}, \"垫圈\") == 0\nassert get_qty({\"轴承\": 12}, \"轴承\") == 12"
+      },
+      "mode": "fix"
+    },
+    {
+      "id": "perr03",
+      "level": 33,
+      "topic": "类型拼接",
+      "title": "文字和数字拼不起来",
+      "question": "为什么『零件总数：』加上 12 会报 TypeError？",
+      "description": "要拼成『零件总数：12』。只改 describe 里 return 那一行（f-string 或者 str()）。",
+      "starter": "def describe(count):\n    label = \"零件总数：\"\n    return label + count\n\n\nprint(describe(12))\n",
+      "lang": "python",
+      "check": {
+        "kind": "python",
+        "test": "assert describe(12) == \"零件总数：12\"\nassert describe(0) == \"零件总数：0\""
+      },
+      "mode": "fix"
+    },
+    {
+      "id": "perr04",
+      "level": 34,
+      "topic": "除以零",
+      "title": "没数据时算平均分就崩",
+      "question": "为什么空列表求平均会报 ZeroDivisionError？",
+      "description": "空列表的平均值应该返回 0.0，不能崩。只改 average。",
+      "starter": "def average(values):\n    return sum(values) / len(values)\n\n\nprint(average([]))\n",
+      "lang": "python",
+      "check": {
+        "kind": "python",
+        "test": "assert average([10, 20]) == 15.0\nassert average([]) == 0.0"
+      },
+      "mode": "fix"
+    },
+    {
+      "id": "perr05",
+      "level": 35,
+      "topic": "变量名拼错",
+      "title": "名字拼错一个字母就 NameError",
+      "question": "为什么函数里报『reslut is not defined』？",
+      "description": "result 和 reslut 拼错了。只改那一处拼写。",
+      "starter": "def total(items):\n    result = 0\n    for it in items:\n        result += it\n    return reslut\n\n\nprint(total([1, 2, 3]))\n",
+      "lang": "python",
+      "check": {
+        "kind": "python",
+        "test": "assert total([1, 2, 3]) == 6\nassert total([]) == 0"
+      },
+      "mode": "fix"
+    },
+    {
+      "id": "perr06",
+      "level": 36,
+      "topic": "类型转换",
+      "title": "输入带小数点的数量就 ValueErr",
+      "question": "为什么 int('12.5') 会报 ValueError？",
+      "description": "数量可能是『12.5』这种文本，要取下整数部分变成 12。只改 to_qty 里 return 那行。",
+      "starter": "def to_qty(text):\n    return int(text)\n\n\nprint(to_qty(\"12.5\"))\n",
+      "lang": "python",
+      "check": {
+        "kind": "python",
+        "test": "assert to_qty(\"12.5\") == 12\nassert to_qty(\"7\") == 7"
+      },
+      "mode": "fix"
+    },
+    {
+      "id": "cerr01",
+      "level": 37,
+      "topic": "编译错误",
+      "title": "少一个分号，整份代码编不过",
+      "question": "为什么编译报『expected ;』？",
+      "description": "C 每条语句结尾都要分号。只补那一个分号。",
+      "starter": "#include <stdio.h>\n\nint part_qty(void) {\n    int qty = 12\n    return qty;\n}\n\nint main(void) {\n    setbuf(stdout, NULL);\n    printf(\"%d\\n\", part_qty());\n    return 0;\n}\n",
+      "lang": "c",
+      "check": {
+        "kind": "c_function",
+        "test": "if (part_qty() != 12) return 1;"
+      },
+      "mode": "fix"
+    },
+    {
+      "id": "cerr02",
+      "level": 38,
+      "topic": "未定义变量",
+      "title": "循环里用了个不存在的变量",
+      "question": "为什么编译报『j undeclared』？",
+      "description": "循环里想累加 a[i]，却写成了 a[j]。只改那个下标变量名。",
+      "starter": "#include <stdio.h>\n\nint sum_first(int a[], int n) {\n    int total = 0;\n    int i;\n    for (i = 0; i < n; i++) {\n        total += a[j];\n    }\n    return total;\n}\n\nint main(void) {\n    int data[3] = {1, 2, 3};\n    setbuf(stdout, NULL);\n    printf(\"%d\\n\", sum_first(data, 3));\n    return 0;\n}\n",
+      "lang": "c",
+      "check": {
+        "kind": "c_function",
+        "test": "int data[3] = {1, 2, 3};\nif (sum_first(data, 3) != 6) return 1;"
+      },
+      "mode": "fix"
+    },
+    {
+      "id": "cerr03",
+      "level": 39,
+      "topic": "空指针崩溃",
+      "title": "对着空地址读数，程序当场挂",
+      "question": "为什么 read_qty(0) 会让程序直接崩，而不是给个报错信息？",
+      "description": "指针可能是空的，解引用前要先检查。只改 read_qty：空指针返回 0。",
+      "starter": "#include <stdio.h>\n\nint read_qty(int *p) {\n    return *p;\n}\n\nint main(void) {\n    setbuf(stdout, NULL);\n    printf(\"%d\\n\", read_qty(0));\n    return 0;\n}\n",
+      "lang": "c",
+      "check": {
+        "kind": "c_function",
+        "test": "int v = 42;\nif (read_qty(&v) != 42) return 1;\nif (read_qty(0) != 0) return 1;"
+      },
+      "mode": "fix"
+    },
+    {
+      "id": "cerr04",
+      "level": 40,
+      "topic": "未初始化指针",
+      "title": "野指针写值，程序当场挂",
+      "question": "为什么把 5 写进 *p 时程序崩溃？",
+      "description": "p 得先指向一块有效内存再写。只改 safe_store 里那两行。",
+      "starter": "#include <stdio.h>\n\nint safe_store(int value) {\n    int *p;\n    *p = value;\n    return *p;\n}\n\nint main(void) {\n    setbuf(stdout, NULL);\n    printf(\"%d\\n\", safe_store(5));\n    return 0;\n}\n",
+      "lang": "c",
+      "check": {
+        "kind": "c_function",
+        "test": "if (safe_store(5) != 5) return 1;\nif (safe_store(-3) != -3) return 1;"
+      },
+      "mode": "fix"
+    },
+    {
+      "id": "pwhy01",
+      "level": 41,
+      "topic": "列表共享引用",
+      "title": "改一格，两行一起变了",
+      "question": "为什么改了 grid[0][0]，grid[1][0] 也变成 1？[0]*3 和 [[0]*3]*2 差在哪？",
+      "description": "先运行看输出，再把原理写进左边的判断框（要说清『同一个列表对象被引用了两次』）。代码保持能跑。",
+      "starter": "grid = [[0] * 3] * 2\ngrid[0][0] = 1\nprint(grid)\n",
+      "lang": "python",
+      "check": {
+        "kind": "python",
+        "test": "grid = [[0] * 3] * 2\ngrid[0][0] = 1\nassert grid[1][0] == 1"
+      },
+      "mode": "why"
+    },
+    {
+      "id": "pwhy02",
+      "level": 42,
+      "topic": "浮点精度",
+      "title": "0.1 加 0.2 不等于 0.3",
+      "question": "为什么 0.1 + 0.2 == 0.3 是 False？那比较小数该怎么做？",
+      "description": "运行看差值。原理写在左边判断框：二进制表示 / 有效位 / 用 round 或容差比较。",
+      "starter": "a = 0.1 + 0.2\nprint(a == 0.3)\nprint(a)\nprint(abs(a - 0.3) < 1e-9)\n",
+      "lang": "python",
+      "check": {
+        "kind": "python",
+        "test": "a = 0.1 + 0.2\nassert a != 0.3\nassert abs(a - 0.3) < 1e-9"
+      },
+      "mode": "why"
+    },
+    {
+      "id": "pwhy03",
+      "level": 43,
+      "topic": "生成器惰性",
+      "title": "生成器用过一次就空了",
+      "question": "为什么 list(g) 第二次是空的？生成器和列表到底差在哪？",
+      "description": "运行看两次输出。原理写在左边判断框：惰性求值 / 只能消费一次 / 要复用就 list() 存下来。",
+      "starter": "g = (x * x for x in range(3))\nprint(list(g))\nprint(list(g))\n",
+      "lang": "python",
+      "check": {
+        "kind": "python",
+        "test": "g = (x * x for x in range(3))\nassert list(g) == [0, 1, 4]\nassert list(g) == []"
+      },
+      "mode": "why"
+    },
+    {
+      "id": "pwhy04",
+      "level": 44,
+      "topic": "深浅拷贝",
+      "title": "复制了一份，改原对象副本也变",
+      "question": "为什么 copy 了一份，改 a 里的列表，b 也跟着变？copy 和 deepcopy 差在哪？",
+      "description": "运行看输出。原理写在左边判断框：浅拷贝只复制外层，里层还是同一个对象。",
+      "starter": "import copy\na = {\"parts\": [1, 2, 3]}\nb = copy.copy(a)\nb[\"parts\"].append(4)\nprint(a)\n",
+      "lang": "python",
+      "check": {
+        "kind": "python",
+        "test": "import copy\na = {\"parts\": [1, 2, 3]}\nb = copy.copy(a)\nb[\"parts\"].append(4)\nassert a[\"parts\"] == [1, 2, 3, 4]"
+      },
+      "mode": "why"
+    },
+    {
+      "id": "cwhy01",
+      "level": 45,
+      "topic": "数组传参退化",
+      "title": "函数里 sizeof 数组只剩指针大小",
+      "question": "为什么在函数里 sizeof(a) 是 8（指针大小），不是数组总字节数？数组名传参时发生了什么？",
+      "description": "运行看两个 sizeof。原理写在左边判断框：数组名传参退化成首元素指针，长度必须另外传。",
+      "starter": "#include <stdio.h>\n\nint sum_all(int a[], int n) {\n    int total = 0;\n    int i;\n    printf(\"函数里 sizeof(a) = %d\\n\", (int)sizeof(a));\n    for (i = 0; i < n; i++) {\n        total += a[i];\n    }\n    return total;\n}\n\nint main(void) {\n    int data[4] = {1, 2, 3, 4};\n    setbuf(stdout, NULL);\n    printf(\"main 里 sizeof(data) = %d\\n\", (int)sizeof(data));\n    printf(\"sum = %d\\n\", sum_all(data, 4));\n    return 0;\n}\n",
+      "lang": "c",
+      "check": {
+        "kind": "c_function",
+        "test": "int data[4] = {1, 2, 3, 4};\nif (sum_all(data, 4) != 10) return 1;"
+      },
+      "mode": "why"
+    },
+    {
+      "id": "cwhy02",
+      "level": 46,
+      "topic": "静态局部变量",
+      "title": "同一个函数，第二次调用还记得上次",
+      "question": "为什么 counter() 每次调用都加一？static 让它和其它局部变量有什么不同？",
+      "description": "运行看三次输出。原理写在左边判断框：static 局部变量只初始化一次，生命周期到程序结束。",
+      "starter": "#include <stdio.h>\n\nint counter(void) {\n    static int c = 0;\n    return ++c;\n}\n\nint main(void) {\n    setbuf(stdout, NULL);\n    printf(\"%d\\n\", counter());\n    printf(\"%d\\n\", counter());\n    printf(\"%d\\n\", counter());\n    return 0;\n}\n",
+      "lang": "c",
+      "check": {
+        "kind": "c_function",
+        "test": "if (counter() != 1) return 1;\nif (counter() != 2) return 1;\nif (counter() != 3) return 1;"
+      },
+      "mode": "why"
+    },
+    {
+      "id": "cwhy03",
+      "level": 47,
+      "topic": "指针步长",
+      "title": "p+1 到底往前走了几个字节",
+      "question": "为什么 int* 的 p+1 地址加了 4 个字节，而不是 1 个？指针加法怎么算的？",
+      "description": "运行看两个地址差。原理写在左边判断框：p+1 前进 sizeof(*p) 个字节。",
+      "starter": "#include <stdio.h>\n\nint step_bytes(void) {\n    int data[2] = {1, 2};\n    int *p = data;\n    int *q = p + 1;\n    return (int)((char *)q - (char *)p);\n}\n\nint main(void) {\n    setbuf(stdout, NULL);\n    printf(\"%d\\n\", step_bytes());\n    return 0;\n}\n",
+      "lang": "c",
+      "check": {
+        "kind": "c_function",
+        "test": "if (step_bytes() != (int)sizeof(int)) return 1;"
+      },
+      "mode": "why"
+    },
+    {
+      "id": "cwhy04",
+      "level": 48,
+      "topic": "值传递",
+      "title": "在函数里改了参数，外面没变",
+      "question": "为什么 add_one(x) 之后外面 x 还是 5？想让函数改到外面，参数该怎么写？",
+      "description": "运行看输出。原理写在左边判断框：C 传参是值复制；要改外面得传地址（指针）。",
+      "starter": "#include <stdio.h>\n\nvoid add_one(int x) {\n    x = x + 1;\n}\n\nint main(void) {\n    int x = 5;\n    setbuf(stdout, NULL);\n    add_one(x);\n    printf(\"%d\\n\", x);\n    return 0;\n}\n",
+      "lang": "c",
+      "check": {
+        "kind": "c_function",
+        "test": "int x = 5;\nadd_one(x);\nif (x != 5) return 1;"
+      },
+      "mode": "why"
+    },
+    {
+      "id": "cwr01",
+      "level": 49,
+      "topic": "边界与断言",
+      "title": "写一个不会崩的除法",
+      "question": "写 safe_div：b 为 0 时返回 fallback，其它情况返回 a/b。",
+      "description": "从零写。要求：\n1) b 为 0 时返回 fallback，绝不能除；\n2) 先 assert 守住「b 不可能为负」这个假设；\n3) 不要在 main 里写答案。\n写完点「提交验收」，隐藏断言会检查各种输入。",
+      "starter": "#include <stdio.h>\n#include <assert.h>\n\n/* TODO：写 safe_div。\n   b 为 0 时返回 fallback；其它情况返回 a / b。\n   先用 assert 守住你认为一定成立的假设。 */\nint safe_div(int a, int b, int fallback) {\n    return fallback;\n}\n\nint main(void) {\n    setbuf(stdout, NULL);\n    printf(\"%d\\n\", safe_div(10, 2, 0));\n    printf(\"%d\\n\", safe_div(10, 0, -1));\n    return 0;\n}\n",
+      "lang": "c",
+      "mode": "write",
+      "check": {
+        "kind": "c_function",
+        "test": "if (safe_div(10, 2, 0) != 5) return 1;\nif (safe_div(10, 0, -1) != -1) return 1;\nif (safe_div(-9, 3, 0) != -3) return 1;\nif (safe_div(0, 5, 7) != 0) return 1;"
+      }
+    },
+    {
+      "id": "cwr02",
+      "level": 50,
+      "topic": "循环与边界",
+      "title": "写 sum_to：1 加到 n",
+      "question": "写 sum_to(n)：返回 1+2+…+n；n <= 0 时返回 0。",
+      "description": "从零写。要求：\n1) 用循环累加，不要用公式；\n2) n <= 0 返回 0（不能少循环也不能多走一步）；\n3) 自己先在脑子里跑一遍 n=1、n=5 的结果。",
+      "starter": "#include <stdio.h>\n\n/* TODO：返回 1 + 2 + ... + n；n <= 0 返回 0。 */\nint sum_to(int n) {\n    return 0;\n}\n\nint main(void) {\n    setbuf(stdout, NULL);\n    printf(\"%d\\n\", sum_to(5));\n    return 0;\n}\n",
+      "lang": "c",
+      "mode": "write",
+      "check": {
+        "kind": "c_function",
+        "test": "if (sum_to(5) != 15) return 1;\nif (sum_to(1) != 1) return 1;\nif (sum_to(0) != 0) return 1;\nif (sum_to(-3) != 0) return 1;"
+      }
+    },
+    {
+      "id": "cwr03",
+      "level": 51,
+      "topic": "前向声明",
+      "title": "先声明、后写实现：体积与质量",
+      "question": "写 part_volume 和 part_mass，两个函数都要先声明再实现。",
+      "description": "从零写。要求：\n1) 文件顶部先写两行函数原型（声明）；\n2) 函数体写在 main 之后（实现）；\n3) part_volume(l,w,h) = 长×宽×高；part_mass(体积, 密度) = 体积×密度。\n这就是把「接口」和「实现」分开的最小形态。",
+      "starter": "#include <stdio.h>\n\n/* TODO：在这里写两个函数原型（声明）。\n   double part_volume(double length, double width, double height);\n   double part_mass(double volume, double density); */\n\nint main(void) {\n    setbuf(stdout, NULL);\n    printf(\"%.1f\\n\", part_volume(2.0, 3.0, 4.0));\n    printf(\"%.1f\\n\", part_mass(part_volume(2.0, 3.0, 4.0), 1.5));\n    return 0;\n}\n\n/* TODO：在这里写两个函数体（实现）。 */\n",
+      "lang": "c",
+      "mode": "write",
+      "check": {
+        "kind": "c_function",
+        "test": "if (part_volume(2.0, 3.0, 4.0) < 23.99 || part_volume(2.0, 3.0, 4.0) > 24.01) return 1;\nif (part_mass(24.0, 1.5) < 35.99 || part_mass(24.0, 1.5) > 36.01) return 1;\nif (part_volume(1.0, 1.0, 1.0) < 0.99 || part_volume(1.0, 1.0, 1.0) > 1.01) return 1;"
+      }
+    },
+    {
+      "id": "cwr04",
+      "level": 52,
+      "topic": "参数与返回值",
+      "title": "写 clamp：把数字夹在区间里",
+      "question": "写 clamp(value, lo, hi)：小于下限返回下限，大于上限返回上限，否则原样返回。",
+      "description": "从零写。要求：\n1) 三个参数都是 int，返回 int；\n2) lo > hi 时把参数当成 lo hi 交换（可选，先做基础版也行）；\n3) 想清楚三种情况：低于、高于、在中间。",
+      "starter": "#include <stdio.h>\n\n/* TODO：写 clamp。 */\nint clamp(int value, int lo, int hi) {\n    return value;\n}\n\nint main(void) {\n    setbuf(stdout, NULL);\n    printf(\"%d\\n\", clamp(15, 0, 10));\n    return 0;\n}\n",
+      "lang": "c",
+      "mode": "write",
+      "check": {
+        "kind": "c_function",
+        "test": "if (clamp(15, 0, 10) != 10) return 1;\nif (clamp(-5, 0, 10) != 0) return 1;\nif (clamp(5, 0, 10) != 5) return 1;\nif (clamp(0, 0, 10) != 0) return 1;\nif (clamp(10, 0, 10) != 10) return 1;"
+      }
+    },
+    {
+      "id": "cwr05",
+      "level": 53,
+      "topic": "模块接口",
+      "title": "写分级函数：小件/中件/大件",
+      "question": "写 grade_code(volume)：<1000 返回 0（小件），<100000 返回 1（中件），否则 2（大件）。",
+      "description": "从零写。这就是模块对外提供的一个「接口」：\n1) 只靠返回值说话，不打印；\n2) 边界 1000 和 100000 属于上一级；\n3) 想清楚 999.9、1000、100000 分别该返回什么。",
+      "starter": "#include <stdio.h>\n\n/* TODO：按体积分级。小件 0 / 中件 1 / 大件 2。 */\nint grade_code(double volume) {\n    return 0;\n}\n\nint main(void) {\n    setbuf(stdout, NULL);\n    printf(\"%d\\n\", grade_code(5000.0));\n    return 0;\n}\n",
+      "lang": "c",
+      "mode": "write",
+      "check": {
+        "kind": "c_function",
+        "test": "if (grade_code(999.9) != 0) return 1;\nif (grade_code(1000.0) != 1) return 1;\nif (grade_code(99999.0) != 1) return 1;\nif (grade_code(100000.0) != 2) return 1;\nif (grade_code(0.0) != 0) return 1;"
+      }
+    },
+    {
+      "id": "cwr06",
+      "level": 54,
+      "topic": "输入校验",
+      "title": "写 is_valid_part：尺寸是否都为正",
+      "question": "写 is_valid_part(l, w, h)：三个尺寸都 > 0 返回 1，否则返回 0。",
+      "description": "从零写。模块的第一道防线就是校验：\n1) 任何一个尺寸 <= 0 都算无效；\n2) 不要打印，只返回 1 或 0；\n3) 想清楚 0、负数、正常值三种情况。",
+      "starter": "#include <stdio.h>\n\n/* TODO：三个尺寸都 > 0 才算有效。 */\nint is_valid_part(double length, double width, double height) {\n    return 0;\n}\n\nint main(void) {\n    setbuf(stdout, NULL);\n    printf(\"%d\\n\", is_valid_part(10.0, 20.0, 5.0));\n    return 0;\n}\n",
+      "lang": "c",
+      "mode": "write",
+      "check": {
+        "kind": "c_function",
+        "test": "if (is_valid_part(10.0, 20.0, 5.0) != 1) return 1;\nif (is_valid_part(0.0, 20.0, 5.0) != 0) return 1;\nif (is_valid_part(10.0, -1.0, 5.0) != 0) return 1;\nif (is_valid_part(1.0, 1.0, 1.0) != 1) return 1;"
+      }
+    },
+    {
+      "id": "cwr07",
+      "level": 55,
+      "topic": "边界检查",
+      "title": "写 safe_set：越界返回错误码",
+      "question": "写 safe_set(data, size, index, value)：成功 0 / 空指针 -1 / 长度非法 -2 / 越界 -3。",
+      "description": "从零写。这是 C16 的核心套路：所有指针 + 下标的函数，进来先查三件事。\n1) data 是不是空；\n2) size 是不是 <= 0；\n3) index 是不是在 [0, size) 之外。\n只有都通过，才写 data[index]。",
+      "starter": "#include <stdio.h>\n\n/* TODO：返回 0 成功 / -1 空指针 / -2 长度非法 / -3 越界。 */\nint safe_set(int *data, int size, int index, int value) {\n    return 0;\n}\n\nint main(void) {\n    int a[3] = {0, 0, 0};\n    setbuf(stdout, NULL);\n    printf(\"%d\\n\", safe_set(a, 3, 2, 42));\n    printf(\"%d\\n\", safe_set(a, 3, 3, 42));\n    return 0;\n}\n",
+      "lang": "c",
+      "mode": "write",
+      "check": {
+        "kind": "c_function",
+        "test": "int a[3] = {0, 0, 0};\nif (safe_set(a, 3, 2, 42) != 0) return 1;\nif (a[2] != 42) return 1;\nif (safe_set(a, 3, 3, 1) != -3) return 1;\nif (safe_set(a, 3, -1, 1) != -3) return 1;\nif (safe_set(0, 3, 0, 1) != -1) return 1;\nif (safe_set(a, 0, 0, 1) != -2) return 1;"
+      }
+    },
+    {
+      "id": "cwr08",
+      "level": 56,
+      "topic": "分配与释放",
+      "title": "写 make_ints / free_ints：成对管理内存",
+      "question": "写 make_ints(n)：分配 n 个 int 并全部填 0，n<=0 返回 NULL；再写 free_ints 释放它。",
+      "description": "从零写。C16 的第二套动作：分配和释放必须成对。\n1) make_ints 里用 malloc(n * sizeof(int))；\n2) 分配失败返回 NULL；\n3) 每个元素填 0；\n4) free_ints 里对 NULL 安全。\n隐藏断言会分配、检查、再释放，看有没有漏。",
+      "starter": "#include <stdio.h>\n#include <stdlib.h>\n\n/* TODO：分配 n 个 int 并填 0；n <= 0 或失败返回 NULL。 */\nint *make_ints(int n) {\n    return NULL;\n}\n\n/* TODO：释放 make_ints 返回的指针；对 NULL 要安全。 */\nvoid free_ints(int *p) {\n}\n\nint main(void) {\n    int *a = make_ints(3);\n    setbuf(stdout, NULL);\n    printf(\"%s\\n\", a ? \"分配成功\" : \"分配失败\");\n    free_ints(a);\n    return 0;\n}\n",
+      "lang": "c",
+      "mode": "write",
+      "check": {
+        "kind": "c_function",
+        "test": "int *p = make_ints(4);\nif (p == 0) return 1;\nif (p[0] != 0 || p[3] != 0) { free_ints(p); return 1; }\nfree_ints(p);\nfree_ints(0);\nif (make_ints(0) != 0) return 1;\nif (make_ints(-2) != 0) return 1;"
+      }
+    },
+    {
+      "id": "py19a",
+      "level": 57,
+      "lang": "python",
+      "topic": "只读属性",
+      "title": "体积被写坏了",
+      "question": "为什么给体积赋值会报错？只读属性被外部改掉会有什么后果？",
+      "description": "运行会直接抛异常。体积是算出来的，不该被外部赋值。找出那行赋值，改成正确做法。",
+      "starter": "class Part:\n    def __init__(self, name, length, width, height):\n        self.name = name\n        self.length = length\n        self.width = width\n        self.height = height\n\n    @property\n    def volume(self):\n        return self.length * self.width * self.height\n\n\npart = Part(\"底座\", 80, 50, 10)\npart.volume = 99999\nprint(\"体积：\", part.volume)\n",
+      "check": {
+        "kind": "python",
+        "test": "p = Part(\"支架\", 120, 60, 8)\nassert p.volume == 57600\nassert \"volume\" not in p.__dict__"
+      },
+      "mode": "fix"
+    },
+    {
+      "id": "py19b",
+      "level": 58,
+      "lang": "python",
+      "topic": "数据类",
+      "title": "把零件写成数据类",
+      "question": "数据类怎么自动生成初始化，又怎么在校验失败时立刻报错？",
+      "description": "补全 __post_init__ 的尺寸校验，再补体积和总体积两个只读属性。",
+      "starter": "from dataclasses import dataclass\n\n\n@dataclass\nclass Part:\n    name: str\n    length: float\n    width: float\n    height: float\n    quantity: int = 1\n\n    # TODO: 尺寸必须大于 0，数量至少为 1\n    # TODO: volume 单件体积，total_volume 总体积\n\n\np = Part(\"底座\", 80, 50, 10, 2)\nprint(p.volume, p.total_volume)\n",
+      "check": {
+        "kind": "python",
+        "test": "p = Part(\"底座\", 80, 50, 10, 2)\nassert p.volume == 40000\nassert p.total_volume == 80000\nfor bad in [(0, 10, 10), (10, -1, 10)]:\n    try:\n        Part(\"坏件\", *bad)\n        assert False, \"非法尺寸没有报错\"\n    except ValueError:\n        pass\ntry:\n    Part(\"坏件\", 10, 10, 10, 0)\n    assert False, \"数量 0 没有报错\"\nexcept ValueError:\n    pass"
+      },
+      "mode": "write"
+    },
+    {
+      "id": "py19c",
+      "level": 59,
+      "lang": "python",
+      "topic": "组合",
+      "title": "库存组合而不是继承",
+      "question": "库存拥有零件，为什么不该让库存继承零件？",
+      "description": "补全 add、total_volume、remove。删除要按名字，返回是否真的删掉。",
+      "starter": "class Inventory:\n    def __init__(self, name):\n        self.name = name\n        self.items = []\n\n    def add(self, name, volume):\n        # TODO: 存成 (name, volume)\n        pass\n\n    def total_volume(self):\n        # TODO: 所有零件体积累加\n        return 0\n\n    def remove(self, name):\n        # TODO: 按名字删除，返回是否删掉\n        return False\n\n\ninv = Inventory(\"一号库\")\ninv.add(\"底座\", 40000)\nprint(inv.total_volume())\n",
+      "check": {
+        "kind": "python",
+        "test": "inv = Inventory(\"一号库\")\ninv.add(\"底座\", 40000)\ninv.add(\"支架\", 57600)\nassert inv.total_volume() == 97600\nassert inv.remove(\"底座\") is True\nassert inv.total_volume() == 57600\nassert inv.remove(\"不存在\") is False"
+      },
+      "mode": "write"
+    },
+    {
+      "id": "py20a",
+      "level": 60,
+      "lang": "python",
+      "topic": "可能为空",
+      "title": "找不到就崩了",
+      "question": "返回值可能是空的时候，调用方不做判断会出什么事？",
+      "description": "查找函数找不到时返回空，后面的转换直接崩。改成先判空再处理。",
+      "starter": "def find_part(parts, key):\n    return parts.get(key)\n\n\ndef safe_label(parts, key):\n    name = find_part(parts, key)\n    return name.upper()\n\n\nprint(safe_label({\"底座\": \"base\"}, \"轴承\"))\n",
+      "check": {
+        "kind": "python",
+        "test": "assert safe_label({\"底座\": \"base\"}, \"底座\") == \"BASE\"\nassert safe_label({\"底座\": \"base\"}, \"轴承\") == \"\""
+      },
+      "mode": "fix"
+    },
+    {
+      "id": "py20b",
+      "level": 61,
+      "lang": "python",
+      "topic": "协议",
+      "title": "两种计算器都接进报表",
+      "question": "不靠继承，只靠一个方法，怎么让报表同时接受两种算法？",
+      "description": "补全两个计算器和报表函数。协议只看有没有 calculate，不看是哪个类。",
+      "starter": "from typing import Protocol\n\n\nclass Calculator(Protocol):\n    def calculate(self, volume: float) -> float:\n        ...\n\n\nclass Plain:\n    def calculate(self, volume: float) -> float:\n        # TODO: 原样返回\n        return 0\n\n\nclass Weighted:\n    def calculate(self, volume: float) -> float:\n        # TODO: 乘 1.2\n        return 0\n\n\ndef report(calculator, volumes):\n    # TODO: 逐个调用 calculate 并求和\n    return 0\n\n\nprint(report(Plain(), [10, 20]))\n",
+      "check": {
+        "kind": "python",
+        "test": "assert Plain().calculate(100) == 100\nassert abs(Weighted().calculate(100) - 120) < 1e-6\nassert report(Plain(), [10, 20]) == 30\nassert abs(report(Weighted(), [10, 20]) - 36) < 1e-6"
+      },
+      "mode": "write"
+    },
+    {
+      "id": "py20c",
+      "level": 62,
+      "lang": "python",
+      "topic": "运行时校验",
+      "title": "注解拦不住脏数据",
+      "question": "类型注解不参与运行，那入口处该用什么拦住传错的参数？",
+      "description": "补全 require_int：不是整数就抛 TypeError，是整数就原样返回。",
+      "starter": "def require_int(value, name=\"参数\"):\n    # TODO: 不是整数就抛 TypeError，是整数就返回它\n    return value\n\n\nprint(require_int(3))\nprint(require_int(\"3\"))\n",
+      "check": {
+        "kind": "python",
+        "test": "assert require_int(3) == 3\ntry:\n    require_int(\"3\")\n    assert False, \"文字没有被拦住\"\nexcept TypeError:\n    pass\ntry:\n    require_int(3.5)\n    assert False, \"小数没有被拦住\"\nexcept TypeError:\n    pass"
+      },
+      "mode": "write"
+    },
+    {
+      "id": "py21a",
+      "level": 63,
+      "lang": "python",
+      "topic": "测试发现",
+      "title": "写了测试却一个都没跑",
+      "question": "测试框架凭什么认出哪些方法才算测试？",
+      "description": "两个方法写得没错，但名字不合规，框架一个都不收集。改名字，让它们被认出来。",
+      "starter": "import unittest\n\n\ndef box_volume(a, b, c):\n    if min(a, b, c) <= 0:\n        raise ValueError(\"尺寸必须大于 0\")\n    return a * b * c\n\n\nclass TestBox(unittest.TestCase):\n    def check_normal(self):\n        self.assertEqual(box_volume(2, 3, 4), 24)\n\n    def check_zero(self):\n        with self.assertRaises(ValueError):\n            box_volume(0, 3, 4)\n\n\nif __name__ == \"__main__\":\n    unittest.main()\n",
+      "check": {
+        "kind": "python",
+        "test": "suite = unittest.defaultTestLoader.loadTestsFromTestCase(TestBox)\nres = unittest.TextTestRunner(verbosity=0).run(suite)\nassert res.testsRun >= 2, \"一个测试都没被收集\"\nassert not res.failures and not res.errors"
+      },
+      "mode": "fix"
+    },
+    {
+      "id": "py21b",
+      "level": 64,
+      "lang": "python",
+      "topic": "边界测试",
+      "title": "三个边界各写一个测试",
+      "question": "为什么边界值要单独测，而不是只测正常值？",
+      "description": "补三个测试，覆盖 9999、10000、50000 三个分档边界。检查时会收集并真的运行。",
+      "starter": "import unittest\n\n\ndef classify(volume):\n    if volume < 10000:\n        return \"小件\"\n    if volume < 50000:\n        return \"中件\"\n    return \"大件\"\n\n\nclass TestClassify(unittest.TestCase):\n    # TODO: 写三个测试，覆盖 9999 / 10000 / 50000\n    pass\n\n\nif __name__ == \"__main__\":\n    unittest.main()\n",
+      "check": {
+        "kind": "python",
+        "test": "suite = unittest.defaultTestLoader.loadTestsFromTestCase(TestClassify)\nres = unittest.TextTestRunner(verbosity=0).run(suite)\nassert res.testsRun >= 3, \"测试数量不够三个\"\nassert not res.failures and not res.errors"
+      },
+      "mode": "write"
+    },
+    {
+      "id": "py21c",
+      "level": 65,
+      "lang": "python",
+      "topic": "测试独立",
+      "title": "换个顺序就挂",
+      "question": "两个测试单独跑都过，为什么反序跑就有一个挂？",
+      "description": "测试之间不能靠上一个留下的状态。加初始化方法让每个测试从干净的起点开始，依赖前一个结果的期望值也要跟着改。",
+      "starter": "import unittest\n\ntotal = 0\n\n\ndef add(n):\n    global total\n    total += n\n    return total\n\n\nclass TestAdd(unittest.TestCase):\n    def test_first(self):\n        self.assertEqual(add(2), 2)\n\n    def test_second(self):\n        self.assertEqual(add(2), 4)\n\n\nif __name__ == \"__main__\":\n    unittest.main()\n",
+      "check": {
+        "kind": "python",
+        "test": "orders = [[\"test_second\", \"test_first\"], [\"test_first\", \"test_second\"]]\nfor names in orders:\n    suite = unittest.TestSuite([TestAdd(n) for n in names])\n    res = unittest.TextTestRunner(verbosity=0).run(suite)\n    assert not res.failures and not res.errors, \"测试之间还在互相干扰\""
+      },
+      "mode": "fix"
+    },
+    {
+      "id": "py22a",
+      "level": 66,
+      "lang": "python",
+      "topic": "线程等待",
+      "title": "结果还没来得及收集",
+      "question": "线程启动了，为什么函数返回时结果列表还是空的？",
+      "description": "启动之后要等每个线程结束，再交出结果。补上等待那一步。",
+      "starter": "import threading\nimport time\n\n\ndef run_all():\n    results = []\n\n    def work(n):\n        time.sleep(0.02)\n        results.append(n)\n\n    threads = [threading.Thread(target=work, args=(n,)) for n in (1, 2, 3)]\n    for t in threads:\n        t.start()\n    return results\n\n\nprint(run_all())\n",
+      "check": {
+        "kind": "python",
+        "test": "assert sorted(run_all()) == [1, 2, 3]"
+      },
+      "mode": "fix"
+    },
+    {
+      "id": "py22b",
+      "level": 67,
+      "lang": "python",
+      "topic": "线程池",
+      "title": "并发跑完还要保序",
+      "question": "线程池里谁先完成不确定，怎么拿到和输入同顺序的结果？",
+      "description": "用线程池并发计算平方，返回顺序必须和输入一致。",
+      "starter": "from concurrent.futures import ThreadPoolExecutor\n\n\ndef fetch_all(numbers):\n    # TODO: 用线程池并发计算 n 的平方，按输入顺序返回\n    return []\n\n\nprint(fetch_all([1, 2, 3, 4]))\n",
+      "check": {
+        "kind": "python",
+        "test": "assert fetch_all([1, 2, 3, 4]) == [1, 4, 9, 16]\nassert fetch_all([5]) == [25]\nassert fetch_all([]) == []"
+      },
+      "mode": "write"
+    },
+    {
+      "id": "py22c",
+      "level": 68,
+      "lang": "python",
+      "topic": "共享状态",
+      "title": "四个人一起加，数少了",
+      "question": "四个线程各加两百次，为什么总数不是八百？",
+      "description": "读和写之间有空隙，别人会插进来。用锁把读改写包成一段，别让别的线程进。",
+      "starter": "import threading\nimport time\n\n\ndef run(threads=4, times=200):\n    counter = 0\n\n    def add():\n        nonlocal counter\n        for _ in range(times):\n            current = counter\n            time.sleep(0.0005)\n            current += 1\n            counter = current\n\n    pool = [threading.Thread(target=add) for _ in range(threads)]\n    for t in pool:\n        t.start()\n    for t in pool:\n        t.join()\n    return counter\n\n\nprint(run())\n",
+      "check": {
+        "kind": "python",
+        "test": "assert run(4, 200) == 800, \"计数被覆盖了\"\nassert run(2, 100) == 200"
+      },
+      "mode": "fix"
+    },
+    {
+      "id": "py23a",
+      "level": 69,
+      "lang": "python",
+      "topic": "中文编码",
+      "title": "中文全变成了斜杠字母",
+      "question": "转成文字以后，中文为什么变成一串转义码？",
+      "description": "改一个参数，让中文保持中文。检查会直接在输出里找原字。",
+      "starter": "import json\n\n\ndef to_text(data):\n    return json.dumps(data, indent=2)\n\n\nprint(to_text({\"workshop\": \"一号车间\"}))\n",
+      "check": {
+        "kind": "python",
+        "test": "text = to_text({\"workshop\": \"一号车间\", \"remark\": \"底座\"})\nassert \"一号车间\" in text, \"中文没有被保留\"\nassert \"底座\" in text\nimport json as _json\nassert _json.loads(text)[\"workshop\"] == \"一号车间\""
+      },
+      "mode": "fix"
+    },
+    {
+      "id": "py23b",
+      "level": 70,
+      "lang": "python",
+      "topic": "接口数据校验",
+      "title": "接口少给一个字段",
+      "question": "接口缺字段、尺寸不够三个、数字不是数字，代码该怎么接？",
+      "description": "补全 from_api：正常数据造出对象，三类坏数据一律抛 ValueError。",
+      "starter": "class Part:\n    def __init__(self, name, length, width, height, quantity=1):\n        self.name = name\n        self.length = length\n        self.width = width\n        self.height = height\n        self.quantity = quantity\n\n    @property\n    def volume(self):\n        return self.length * self.width * self.height\n\n    @classmethod\n    def from_api(cls, row):\n        # TODO: 缺 size、长度不是 3、非数字都要抛 ValueError\n        return cls(str(row.get(\"name\") or \"?\"), 0, 0, 0)\n\n\nprint(Part.from_api({\"name\": \"底座\", \"size\": [80, 50, 10]}).volume)\n",
+      "check": {
+        "kind": "python",
+        "test": "p = Part.from_api({\"name\": \"底座\", \"size\": [80, 50, 10], \"quantity\": 2})\nassert p.volume == 40000\nassert p.quantity == 2\nfor bad in [{\"name\": \"缺尺寸\"}, {\"name\": \"尺寸不对\", \"size\": [1, 2]}, {\"name\": \"非数字\", \"size\": [\"a\", 2, 3]}]:\n    try:\n        Part.from_api(bad)\n        assert False, \"坏数据没有被拦住\"\n    except ValueError:\n        pass"
+      },
+      "mode": "write"
+    },
+    {
+      "id": "py23c",
+      "level": 71,
+      "lang": "python",
+      "topic": "查询字符串",
+      "title": "参数里的空格和符号",
+      "question": "关键词里带空格和特殊符号，手拼进地址为什么会错位？",
+      "description": "用编码工具生成查询字符串，别再手拼。检查会解析回来比对字段。",
+      "starter": "def build_query(keyword, page):\n    return \"kw=\" + keyword + \"&page=\" + str(page)\n\n\nprint(build_query(\"底座 A\", 2))\n",
+      "check": {
+        "kind": "python",
+        "test": "from urllib.parse import parse_qs\nq = build_query(\"底座 A\", 2)\nassert parse_qs(q) == {\"kw\": [\"底座 A\"], \"page\": [\"2\"]}, q\nassert parse_qs(build_query(\"a&b\", 3)) == {\"kw\": [\"a&b\"], \"page\": [\"3\"]}"
+      },
+      "mode": "fix"
+    },
+    {
+      "id": "py24a",
+      "level": 72,
+      "lang": "python",
+      "topic": "派生字段",
+      "title": "平均分被除错了",
+      "question": "三门课的平均分，为什么算出来只有总分的四分之一？",
+      "description": "总分和平均分只能在一个地方算。改除数，别改调用方。",
+      "starter": "def calc(chinese, math, english):\n    total = chinese + math + english\n    return {\"total\": total, \"average\": total / 4.0}\n\n\nprint(calc(86, 92, 78))\n",
+      "check": {
+        "kind": "python",
+        "test": "r = calc(86, 92, 78)\nassert r[\"total\"] == 256\nassert abs(r[\"average\"] - 256 / 3.0) < 0.01"
+      },
+      "mode": "fix"
+    },
+    {
+      "id": "py24b",
+      "level": 73,
+      "lang": "python",
+      "topic": "输入校验",
+      "title": "表格里混进四种脏数据",
+      "question": "缺字段、非数字、负库存、空名字，各该在哪一步拦下来？",
+      "description": "补全 parse_part：正常行转成字典，四类坏数据都抛 ValueError。",
+      "starter": "def parse_part(row):\n    # TODO: 必需 name/length/width/height/quantity\n    # 缺字段、非数字、负库存、空名字都要抛 ValueError\n    return {\n        \"name\": row[\"name\"],\n        \"length\": 0.0,\n        \"width\": 0.0,\n        \"height\": 0.0,\n        \"quantity\": 0,\n    }\n\n\nprint(parse_part({\"name\": \"底座\", \"length\": \"80\", \"width\": \"50\", \"height\": \"10\", \"quantity\": \"2\"}))\n",
+      "check": {
+        "kind": "python",
+        "test": "good = parse_part({\"name\": \"底座\", \"length\": \"80\", \"width\": \"50\", \"height\": \"10\", \"quantity\": \"2\"})\nassert good[\"length\"] == 80.0 and good[\"width\"] == 50.0\nassert good[\"height\"] == 10.0 and good[\"quantity\"] == 2\nfor bad in [\n    {\"name\": \"缺\", \"length\": \"1\", \"width\": \"1\"},\n    {\"name\": \"非数字\", \"length\": \"十\", \"width\": \"1\", \"height\": \"1\", \"quantity\": \"1\"},\n    {\"name\": \"负库存\", \"length\": \"1\", \"width\": \"1\", \"height\": \"1\", \"quantity\": \"-2\"},\n    {\"name\": \"   \", \"length\": \"1\", \"width\": \"1\", \"height\": \"1\", \"quantity\": \"1\"},\n]:\n    try:\n        parse_part(bad)\n        assert False, \"坏数据没有被拦住：\" + str(bad)\n    except ValueError:\n        pass"
+      },
+      "mode": "write"
+    },
+    {
+      "id": "py24c",
+      "level": 74,
+      "lang": "python",
+      "topic": "报表汇总",
+      "title": "按总体积排的表",
+      "question": "单件体积乘数量才是库存体积，排序该按哪个数？",
+      "description": "补全 build_report：算总体积，按从大到小排，返回名字和总量。",
+      "starter": "def build_report(parts):\n    # parts: [{\"name\": ..., \"unit\": 单件体积, \"quantity\": 数量}]\n    # TODO: 返回按总体积从大到小排序的列表，每项含 name/total\n    return []\n\n\nprint(build_report([\n    {\"name\": \"底座\", \"unit\": 40000, \"quantity\": 2},\n    {\"name\": \"支架\", \"unit\": 57600, \"quantity\": 1},\n]))\n",
+      "check": {
+        "kind": "python",
+        "test": "rows = build_report([\n    {\"name\": \"底座\", \"unit\": 40000, \"quantity\": 2},\n    {\"name\": \"支架\", \"unit\": 57600, \"quantity\": 1},\n    {\"name\": \"垫块\", \"unit\": 4500, \"quantity\": 6},\n])\nassert [r[\"name\"] for r in rows] == [\"底座\", \"支架\", \"垫块\"]\nassert [r[\"total\"] for r in rows] == [80000, 57600, 27000]"
+      },
+      "mode": "write"
+    },
+    {
+      "id": "py01a",
+      "level": 75,
+      "lang": "python",
+      "lang_note": "",
+      "topic": "缩进",
+      "title": "函数体没有缩进",
+      "question": "为什么一运行就报缩进错误？Python 靠什么判断哪几行属于函数？",
+      "description": "三行打印没有收进函数体。整体缩进四格，让它们成为 show 的一部分。",
+      "starter": "def show():\nprint(\"零件清单\")\nprint(\"轴承 12 件\")\nprint(\"齿轮 8 件\")\n\n\nshow()\n",
+      "check": {
+        "kind": "python",
+        "test": "show()"
+      },
+      "mode": "fix"
+    },
+    {
+      "id": "py01b",
+      "level": 76,
+      "lang": "python",
+      "topic": "输出格式",
+      "title": "按格式打出三行清单",
+      "question": "怎么把固定文字和变量拼成一行，再用 print 输出？",
+      "description": "补全 show：依次输出「零件清单」「轴承：12」「齿轮：8」三行，一字不差。",
+      "starter": "def show():\n    # TODO: 输出三行：零件清单 / 轴承：12 / 齿轮：8\n    pass\n\n\nshow()\n",
+      "check": {
+        "kind": "python",
+        "test": "import io, contextlib\nbuf = io.StringIO()\nwith contextlib.redirect_stdout(buf):\n    show()\nlines = [x.strip() for x in buf.getvalue().splitlines() if x.strip()]\nassert lines == [\"零件清单\", \"轴承：12\", \"齿轮：8\"], lines"
+      },
+      "mode": "write"
+    },
+    {
+      "id": "py06a",
+      "level": 77,
+      "lang": "python",
+      "topic": "循环跳过",
+      "title": "跳过三的倍数再求和",
+      "question": "循环里想跳过一部分数，该用 continue 还是 break？",
+      "description": "补全 sum_skip_three：1 到 n 里跳过 3 的倍数，把剩下的加起来。",
+      "starter": "def sum_skip_three(n):\n    # TODO: 1 到 n 里跳过 3 的倍数，返回剩下的和\n    return 0\n\n\nprint(sum_skip_three(10))\n",
+      "check": {
+        "kind": "python",
+        "test": "assert sum_skip_three(10) == 37\nassert sum_skip_three(3) == 3\nassert sum_skip_three(0) == 0"
+      },
+      "mode": "write"
+    },
+    {
+      "id": "py10a",
+      "level": 78,
+      "lang": "python",
+      "topic": "文件指针",
+      "title": "第二次读出来是空的",
+      "question": "同一个文件对象读第二遍，为什么什么都没有？",
+      "description": "第一次读完整份文件，指针已经停在末尾。让它回到开头再读，两次内容要一样。",
+      "starter": "def read_twice(path):\n    f = open(path, \"r\", encoding=\"utf-8\")\n    first = f.read()\n    second = f.read()\n    f.close()\n    return first, second\n\n\nif __name__ == \"__main__\":\n    with open(\"note.txt\", \"w\", encoding=\"utf-8\") as w:\n        w.write(\"轴承 12\\n齿轮 8\\n\")\n    print(read_twice(\"note.txt\"))\n",
+      "check": {
+        "kind": "python",
+        "test": "import os, tempfile\nfd, path = tempfile.mkstemp(suffix=\".txt\")\nos.close(fd)\nwith open(path, \"w\", encoding=\"utf-8\") as w:\n    w.write(\"轴承 12\\n齿轮 8\\n\")\na, b = read_twice(path)\nos.remove(path)\nassert a == \"轴承 12\\n齿轮 8\\n\", repr(a)\nassert b == a, repr(b)"
+      },
+      "mode": "fix"
+    },
+    {
+      "id": "py10b",
+      "level": 79,
+      "lang": "python",
+      "topic": "按行读取",
+      "title": "只数有内容的行",
+      "question": "空行和只敲了空格的行，怎么在读的时候排除？",
+      "description": "补全 count_lines：返回文件里非空行的数量，纯空白行不算。",
+      "starter": "def count_lines(path):\n    # TODO: 返回非空行数，纯空白行不算\n    return 0\n\n\nif __name__ == \"__main__\":\n    with open(\"note.txt\", \"w\", encoding=\"utf-8\") as w:\n        w.write(\"轴承 12\\n\\n齿轮 8\\n   \\n电机 15\\n\")\n    print(count_lines(\"note.txt\"))\n",
+      "check": {
+        "kind": "python",
+        "test": "import os, tempfile\nfd, path = tempfile.mkstemp(suffix=\".txt\")\nos.close(fd)\nwith open(path, \"w\", encoding=\"utf-8\") as w:\n    w.write(\"轴承 12\\n\\n齿轮 8\\n   \\n电机 15\\n\")\nn = count_lines(path)\nos.remove(path)\nassert n == 3, n"
+      },
+      "mode": "write"
+    },
+    {
+      "id": "py13a",
+      "level": 80,
+      "lang": "python",
+      "topic": "路径处理",
+      "title": "取扩展名",
+      "question": "怎么从一条路径里只拿扩展名，不管前面有几层目录？",
+      "description": "补全 ext_of：返回带点的扩展名；没有扩展名就返回空字符串。",
+      "starter": "def ext_of(name):\n    # TODO: 返回扩展名（含点），没有就返回空字符串\n    return \"\"\n\n\nprint(ext_of(\"a/b/c.py\"))\n",
+      "check": {
+        "kind": "python",
+        "test": "assert ext_of(\"a/b/c.py\") == \".py\"\nassert ext_of(\"report.tar.gz\") == \".gz\"\nassert ext_of(\"noext\") == \"\"\nassert ext_of(\"目录/零件.c\") == \".c\""
+      },
+      "mode": "write"
+    },
+    {
+      "id": "py13b",
+      "level": 81,
+      "lang": "python",
+      "topic": "日期计算",
+      "title": "两个日期差几天",
+      "question": "字符串写的日期，怎么变成能相减的对象？",
+      "description": "补全 days_between：两个 YYYY-MM-DD 之间相差几天，同一天返回 0。",
+      "starter": "def days_between(start, end):\n    # TODO: 两个 YYYY-MM-DD 日期之间差几天\n    return 0\n\n\nprint(days_between(\"2026-01-01\", \"2026-01-31\"))\n",
+      "check": {
+        "kind": "python",
+        "test": "assert days_between(\"2026-01-01\", \"2026-01-31\") == 30\nassert days_between(\"2026-03-01\", \"2026-03-01\") == 0\nassert days_between(\"2026-02-28\", \"2026-03-01\") == 1"
+      },
+      "mode": "write"
+    },
+    {
+      "id": "py15a",
+      "level": 82,
+      "lang": "python",
+      "topic": "生成器惰性",
+      "title": "只取前 n 个，别多拿",
+      "question": "生成器怎么做到要几个给几个、不提前消费？",
+      "description": "补全 take：从可迭代对象里只产出前 n 个。传进来的如果本身是生成器，取完别把它掏空。",
+      "starter": "def take(iterable, n):\n    # TODO: 只产出前 n 个，不要提前多取\n    return\n\n\nprint(list(take([1, 2, 3, 4], 2)))\n",
+      "check": {
+        "kind": "python",
+        "test": "assert list(take([1, 2, 3, 4], 2)) == [1, 2]\nassert list(take(range(10), 3)) == [0, 1, 2]\n\ndef gen():\n    for i in range(1000000):\n        yield i\n\ng = gen()\nassert list(take(g, 3)) == [0, 1, 2]\nassert next(g) == 3, \"取多了，生成器被提前消费\""
+      },
+      "mode": "write"
+    },
+    {
+      "id": "py16a",
+      "level": 83,
+      "lang": "python",
+      "topic": "推导式",
+      "title": "清洗标签一行搞定",
+      "question": "过滤和转换怎么在一条推导式里同时做？",
+      "description": "补全 tags：去掉首尾空格、转小写、空串不要。返回新的列表。",
+      "starter": "def tags(names):\n    # TODO: 去空格、转小写、丢掉空串\n    return []\n\n\nprint(tags([\"  Bearing \", \"\", \" GEAR \"]))\n",
+      "check": {
+        "kind": "python",
+        "test": "assert tags([\"  Bearing \", \"\", \" GEAR \"]) == [\"bearing\", \"gear\"]\nassert tags([]) == []\nassert tags([\"  \", \"  \"]) == []"
+      },
+      "mode": "write"
+    },
+    {
+      "id": "py16b",
+      "level": 84,
+      "lang": "python",
+      "topic": "排序键",
+      "title": "按数量挑前三",
+      "question": "排序时怎么指定按哪个字段比，而不是按名字？",
+      "description": "补全 top_three：按 qty 从大到小，返回前三件的名字（不足三件就全给）。",
+      "starter": "def top_three(parts):\n    # parts: [{\"name\": ..., \"qty\": ...}]\n    # TODO: 按 qty 从大到小，返回前三的名字\n    return []\n\n\nprint(top_three([{\"name\": \"轴承\", \"qty\": 12}]))\n",
+      "check": {
+        "kind": "python",
+        "test": "rows = [{\"name\": \"轴承\", \"qty\": 12}, {\"name\": \"齿轮\", \"qty\": 30}, {\"name\": \"电机\", \"qty\": 8}, {\"name\": \"皮带\", \"qty\": 21}]\nassert top_three(rows) == [\"齿轮\", \"皮带\", \"轴承\"]\nassert top_three(rows[:2]) == [\"齿轮\", \"轴承\"]\nassert top_three([]) == []"
+      },
+      "mode": "write"
+    },
+    {
+      "id": "py17a",
+      "level": 85,
+      "lang": "python",
+      "topic": "装饰器",
+      "title": "装饰完函数变成空的了",
+      "question": "装饰器写了内层函数，为什么外面用不了了？",
+      "description": "外层忘了把内层交出去。补上返回，再让装饰后的函数保留原来的名字。",
+      "starter": "def logged(fn):\n    def wrapper(*args, **kwargs):\n        print(\"调用\", fn.__name__)\n        return fn(*args, **kwargs)\n    # 这里少了东西\n\n\n@logged\ndef add(a, b):\n    return a + b\n\n\nprint(add(1, 2))\n",
+      "check": {
+        "kind": "python",
+        "test": "assert add(2, 3) == 5\nassert add.__name__ == \"add\", \"名字被 wrapper 换掉了\""
+      },
+      "mode": "fix"
+    },
+    {
+      "id": "py17b",
+      "level": 86,
+      "lang": "python",
+      "topic": "带参装饰器",
+      "title": "失败就重试的装饰器",
+      "question": "带参数的装饰器，为什么要多包一层函数？",
+      "description": "补全 retry：被装饰的函数抛异常时最多再试 times 次，成功了就返回结果。",
+      "starter": "def retry(times):\n    # TODO: 抛异常时最多再试 times 次\n    def decorator(fn):\n        def wrapper(*args, **kwargs):\n            return fn(*args, **kwargs)\n        return wrapper\n    return decorator\n\n\n@retry(2)\ndef flaky():\n    return \"ok\"\n",
+      "check": {
+        "kind": "python",
+        "test": "calls = {\"n\": 0}\n\n@retry(2)\ndef flaky():\n    calls[\"n\"] += 1\n    if calls[\"n\"] < 3:\n        raise ValueError(\"还没好\")\n    return \"ok\"\n\nassert flaky() == \"ok\"\nassert calls[\"n\"] == 3, calls"
+      },
+      "mode": "write"
+    },
+    {
+      "id": "py18a",
+      "level": 87,
+      "lang": "python",
+      "topic": "上下文管理器",
+      "title": "用 with 量一段代码的耗时",
+      "question": "进入和退出各该做什么，计时才准？",
+      "description": "补全 Timer：进入时记开始时间，退出时把耗时写进 elapsed（秒，浮点数）。",
+      "starter": "class Timer:\n    # TODO: with Timer() as t 结束后，t.elapsed 是耗时秒数\n    def __enter__(self):\n        return self\n\n    def __exit__(self, exc_type, exc, tb):\n        return False\n\n\nwith Timer() as t:\n    pass\nprint(getattr(t, \"elapsed\", \"没有 elapsed\"))\n",
+      "check": {
+        "kind": "python",
+        "test": "import time\nwith Timer() as t:\n    time.sleep(0.05)\nassert isinstance(getattr(t, \"elapsed\", None), float), \"elapsed 要是浮点数秒\"\nassert t.elapsed >= 0.04, t.elapsed"
+      },
+      "mode": "write"
+    },
+    {
+      "id": "py18b",
+      "level": 88,
+      "lang": "python",
+      "topic": "异常传播",
+      "title": "异常被 with 吞了",
+      "question": "退出方法的返回值，为什么会决定异常传不传出去？",
+      "description": "本地运行 risky() 时异常没有冒出来，程序还往下走了。改退出方法的返回值，让异常正常抛出。",
+      "starter": "class Guard:\n    def __enter__(self):\n        return self\n\n    def __exit__(self, exc_type, exc, tb):\n        return True\n\n\ndef risky():\n    with Guard():\n        raise ValueError(\"库存不能为负\")\n\n\nif __name__ == \"__main__\":\n    risky()\n    print(\"继续执行\")\n",
+      "check": {
+        "kind": "python",
+        "test": "try:\n    risky()\n    assert False, \"异常被吞掉了\"\nexcept ValueError:\n    pass"
+      },
+      "mode": "fix"
+    }
+  ]
+}
