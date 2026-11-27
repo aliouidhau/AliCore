@@ -24,7 +24,7 @@ AliCore/
 ├─ NOTICE               # 第三方致谢与各项目许可证
 ├─ LICENSE              # 代码 MIT / 教程 CC BY-NC-SA 4.0
 ├─ ali_app.spec         # PyInstaller 打包配置
-└─ 阿鲤桌面端.bat       # 启动脚本（自动找 .venv 或系统 Python）
+└─ ali_app.py           # 入口
 ```
 
 ## 快速开始
@@ -50,7 +50,6 @@ AliCore/
    ```
    python ali_app.py
    ```
-   或双击 `阿鲤桌面端.bat`（会自动找 `.venv` 或系统 Python）
 
 4. 左侧「工作空间」进靶场：教程只读、练习场随便改、实战模式有判题。
 
