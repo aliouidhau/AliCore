@@ -1,18 +1,9 @@
-"""配置层。
+"""配置层：凭证和运行参数只在后端，不下发到前端。
 
-抄自 OpenHands 的一条边界原则：凭证和运行参数只在后端，不下发到前端。
-
-凭证不外露这一条，光「不下发给前端」还不够——agent 自己就有 read_file，
-config.json 就摆在它工作目录里，它随时能把自己的钥匙读出来打印给你看。
-所以真值不进 config.json，改存到 %APPDATA%\\AliCore\\secrets.json：
-
-  为什么是 APPDATA——tools_fs.py 的 DENY_DIRS 把当前账户的 AppData 整段拒了，
-  agent 的 read_file / search_text / list_files 全都碰不到那里；而 config.json
-  在它嘴边。把钥匙从嘴边移到它伸不到的地方，才是真的不外露。
-
-  读取优先级：环境变量 > secrets.json > config.json 内联（兼容老版本）。
-  老版本 config.json 里如果还留着明文 key，首次加载会自动搬去 secrets.json，
-  并把 config.json 里的那份清空——搬一次就够，之后只剩空字符串。
+模型接入改成「用户自己填 Base URL + Key」：
+  · config.json 只存服务商名字、地址、模型列表、当前选中的模型
+  · 真 Key 全部放在 %APPDATA%\\AliCore\\secrets.json 的 provider_keys 里
+  · 不再内置任何免费通道，也不再靠环境变量偷偷塞 key
 """
 
 import json
@@ -22,55 +13,42 @@ import threading
 
 from .fsutil import atomic_write_json
 
+# secrets.json 里只有一个顶层键，值形如 {"<provider_id>": "<key>"}
+SECRET_KEYS = ("provider_keys",)
+
+DEFAULT_CONFIG = {
+    "providers": [],            # [{id, name, base_url, models: [], vision_model: ""}]
+    "current_provider": "",     # 当前用的服务商 id
+    "current_model": "",        # 当前用的模型名
+    "system_prompt": "",
+    "agent_mode": "json",
+    "max_rounds": 6,
+    "max_steps": 4,
+    "sandbox": True,
+    "temperature": 0.85,
+    "history_limit": 10,
+    "context_window": 131072,
+    "max_output_tokens": 8192,
+}
+
 
 def _say(msg):
-    """pythonw.exe 下 sys.stdout 是 None，print() 会抛 AttributeError。
-
-    而这个函数只用在 except 分支里——一 print，错误处理本身就成了新的崩溃点，
-    原本「读配置失败但继续用默认值」会变成「读配置失败且程序打不开」。
-    """
+    """pythonw 下 stdout 是 None，日志走文件或直接跳过。"""
     try:
         if sys.stdout is not None:
             print(msg)
     except Exception:
         pass
 
-SECRET_KEYS = ("api_key", "glm_key", "openai_key", "anthropic_key")
-
-# 环境变量优先级最高：适合临时换 key、或者在 CI / 别人的机器上跑而不落地
-ENV_MAP = {
-    "api_key": "ALICORE_DEEPSEEK_KEY",
-    "glm_key": "ALICORE_GLM_KEY",
-    "openai_key": "ALICORE_OPENAI_KEY",
-    "anthropic_key": "ALICORE_ANTHROPIC_KEY",
-}
-
-DEFAULT_CONFIG = {
-    "api_key": "",
-    "glm_key": "",
-    "openai_key": "",
-    "anthropic_key": "",
-    # 中转站地址（OpenAI 兼容协议）。官方直连留空；填中转后 GPT 和 Claude 都能从中转走，工具调用也可用
-    "openai_base_url": "",
-    "anthropic_max_tokens": 4096,
-    "system_prompt": "",
-    "agent_mode": "json",      # json | code | auto
-                                # 实测：glm-4-flash 下 code 通道更贵（2.4 倍）且会编答案；
-                                # 换成强模型（如 DeepSeek）再试 "code" / "auto"
-    "max_rounds": 6,           # 单个任务的工具轮次上限
-    "max_steps": 4,            # CodeAgent 最多写几次代码（每轮都要重发上下文，越多越贵）
-    "sandbox": True,           # run_python 走 Docker；False 则走本地受限 exec
-    "temperature": 0.85,
-    "history_limit": 10,       # 带多少条历史（旧版就是 10）
-    # 上下文窗口只用于“显示压力”和以后的压缩触发；0 = 不估算。
-    # 多数 DeepSeek/GLM 对话模型是 128K，按自己实际模型改，不要拿它当计费。
-    "context_window": 131072,
-    "max_output_tokens": 8192,
-}
-
 
 def secrets_path():
-    """%APPDATA%\\AliCore\\secrets.json（也在 tools_fs 的拒绝目录里）。"""
+    """%APPDATA%\\AliCore\\secrets.json（也在 tools_fs 的拒绝目录里）。
+
+    测试或多实例可以用 ALICORE_SECRETS 指到别处，别再碰真实凭证。
+    """
+    override = os.environ.get("ALICORE_SECRETS")
+    if override:
+        return os.path.abspath(override)
     base = os.environ.get("APPDATA")
     if not base:
         base = os.path.join(os.path.expanduser("~"), "AppData", "Roaming")
@@ -83,7 +61,6 @@ class Config:
         self.path = os.path.join(self.base_dir, "config.json")
         self.secrets_file = secrets_path()
         self.data = dict(DEFAULT_CONFIG)
-        # 界面保存和聊天线程可能同时写凭证：读-改-写必须串行，否则后写的会吞掉先写的
         self._secrets_lock = threading.RLock()
         self.load()
 
@@ -109,31 +86,57 @@ class Config:
             except Exception as e:
                 _say(f"[配置] 密钥文件读取失败: {e}")
 
-        # 环境变量最高，其次是密钥文件
-        for k, env in ENV_MAP.items():
-            v = (os.environ.get(env) or "").strip()
-            if v:
-                secrets[k] = v
-
         for k, v in raw.items():
             self.data[k] = v
 
-        for k in SECRET_KEYS:
-            self.data[k] = (secrets.get(k) or "").strip() or (raw.get(k) or "").strip()
+        keys = secrets.get("provider_keys")
+        self.data["provider_keys"] = keys if isinstance(keys, dict) else {}
 
-        # 老版本迁移：config.json 里还有明文就搬走并清空那一份
-        if any((raw.get(k) or "").strip() for k in SECRET_KEYS):
-            self._migrate(raw)
+        # 老版本 config.json 里的明文 key / 单家配置：迁成第一个 provider，再清掉明文
+        legacy = raw.get("openai_base_url") or raw.get("glm_key") or raw.get("api_key")
+        if legacy and not self.data.get("providers"):
+            self._migrate_legacy(raw, secrets)
 
-    def _migrate(self, raw):
-        """把 config.json 里的明文 key 搬到 secrets.json，再清空原处。"""
+        # 老版本 config.json 里可能还留着明文 key，搬走
+        if any((raw.get(k) or "").strip() for k in ("api_key", "glm_key", "openai_key", "anthropic_key")):
+            self._scrub_legacy(raw)
+
+    def _migrate_legacy(self, raw, secrets):
+        """老配置升级：把单家 key + 中转地址变成一个 provider。"""
         try:
-            self._write_secrets({k: raw.get(k) for k in SECRET_KEYS if (raw.get(k) or "").strip()})
-            out = {k: ("" if k in SECRET_KEYS else self.data.get(k, v)) for k, v in DEFAULT_CONFIG.items()}
-            atomic_write_json(self.path, out, mode=0o644)
-            _say(f"[配置] 已把明文 key 迁到 {self.secrets_file}，config.json 里的已清空")
+            base = (raw.get("openai_base_url") or "").strip()
+            key = (secrets.get("openai_key") or secrets.get("api_key")
+                   or raw.get("openai_key") or raw.get("api_key") or "").strip()
+            name = "OpenAI 兼容"
+            if "deepseek" in base:
+                name, base = "DeepSeek", base or "https://api.deepseek.com"
+            elif "bigmodel" in base:
+                name, base = "智谱 GLM", base or "https://open.bigmodel.cn/api/paas/v4"
+            elif "anthropic" in base:
+                name = "Anthropic"
+            elif not base and key:
+                # 老用户只存了 glm_key、没存地址：按智谱补一个
+                name, base = "智谱 GLM", "https://open.bigmodel.cn/api/paas/v4"
+            if not (base and key):
+                return
+            pid = "p1"
+            self.data["providers"] = [{"id": pid, "name": name, "base_url": base,
+                                       "models": [], "vision_model": ""}]
+            self.data["provider_keys"] = {pid: key}
+            self.data["current_provider"] = pid
+            self.save()
+            _say(f"[配置] 已把老配置迁移成服务商：{name}")
         except Exception as e:
-            _say(f"[配置] 迁移密钥失败（config.json 仍保留明文）: {e}")
+            _say(f"[配置] 迁移老配置失败：{e}")
+
+    def _scrub_legacy(self, raw):
+        try:
+            out = {k: v for k, v in self.data.items() if k not in
+                   ("api_key", "glm_key", "openai_key", "anthropic_key", "openai_base_url", "anthropic_max_tokens")}
+            atomic_write_json(self.path, out, mode=0o644)
+            _say("[配置] config.json 里的明文 key 已清掉")
+        except Exception as e:
+            _say(f"[配置] 清理明文 key 失败：{e}")
 
     # ---------------- 写入 ----------------
     def _write_secrets(self, mapping):
@@ -154,33 +157,88 @@ class Config:
             except Exception:
                 pass
         existing.update(mapping)
-        # 原子写 + 0o600：写到一半崩了也不会把密钥文件变成空文件
         atomic_write_json(self.secrets_file, existing, mode=0o600)
         try:
-            # Windows 上 chmod 只动只读位，不改 ACL——这句话不构成「别人账户看不到」的保证。
-            # 真正挡住 agent 的是 tools_fs 的 DENY_DIRS（现在按 %APPDATA% 动态拼，不再写死用户名）。
             os.chmod(self.secrets_file, 0o600)
         except Exception:
             pass
 
-    def describe_secrets(self):
-        """凭证的「配没配」，永远不回真值。给日志、自检、界面文案用。
+    def save(self):
+        """provider_keys 进 secrets.json，config.json 只留空位。"""
+        keys = self.data.get("provider_keys") or {}
+        self._write_secrets({"provider_keys": keys})
+        out = {k: v for k, v in self.data.items() if k != "provider_keys"}
+        for k, v in DEFAULT_CONFIG.items():
+            out.setdefault(k, v)
+        atomic_write_json(self.path, out, mode=0o644)
 
-        前 5 后 4 可见、其余打码——够认出来是哪把，不够拿去用。
-        少于 12 位的直接全员打码，避免短 key 被扒光。
-        """
-        out = {}
-        for k in SECRET_KEYS:
-            v = (self.data.get(k) or "").strip()
-            if not v:
-                out[k] = {"configured": False, "length": 0, "masked": ""}
-            elif len(v) >= 12:
-                out[k] = {"configured": True, "length": len(v),
-                          "masked": v[:5] + "…" + v[-4:]}
-            else:
-                out[k] = {"configured": True, "length": len(v), "masked": "…"}
+    # ---------------- 服务商 ----------------
+    def providers(self):
+        out = []
+        for p in (self.get("providers") or []):
+            if isinstance(p, dict) and p.get("id"):
+                out.append(p)
         return out
 
+    def provider(self, pid):
+        for p in self.providers():
+            if p.get("id") == pid:
+                return p
+        return None
+
+    def provider_key(self, pid):
+        keys = self.data.get("provider_keys") or {}
+        if not isinstance(keys, dict):
+            return ""
+        return (keys.get(pid) or "").strip()
+
+    def set_provider(self, provider, key):
+        """新增或更新一个服务商；key 走 secrets，不进 config.json。"""
+        provs = self.providers()
+        pid = (provider or {}).get("id") or ""
+        if not pid:
+            pid = "p" + str(len(provs) + 1)
+            while self.provider(pid):
+                pid += "x"
+        entry = {"id": pid, "name": (provider.get("name") or "").strip() or "未命名服务商",
+                 "base_url": (provider.get("base_url") or "").strip().rstrip("/"),
+                 "models": list(provider.get("models") or []),
+                 "vision_model": (provider.get("vision_model") or "").strip()}
+        replaced = False
+        for i, p in enumerate(provs):
+            if p.get("id") == pid:
+                provs[i] = entry
+                replaced = True
+                break
+        if not replaced:
+            provs.append(entry)
+        self.data["providers"] = provs
+        if key:
+            keys = dict(self.data.get("provider_keys") or {})
+            keys[pid] = key.strip()
+            self.data["provider_keys"] = keys
+        if not self.data.get("current_provider"):
+            self.data["current_provider"] = pid
+        self.save()
+        return entry
+
+    def remove_provider(self, pid):
+        provs = [p for p in self.providers() if p.get("id") != pid]
+        self.data["providers"] = provs
+        keys = dict(self.data.get("provider_keys") or {})
+        keys.pop(pid, None)
+        self.data["provider_keys"] = keys
+        if self.data.get("current_provider") == pid:
+            self.data["current_provider"] = provs[0]["id"] if provs else ""
+            self.data["current_model"] = (provs[0].get("models") or [""])[0] if provs else ""
+        self.save()
+
+    def set_current_model(self, pid, model):
+        self.data["current_provider"] = pid
+        self.data["current_model"] = model
+        self.save()
+
+    # ---------------- 前端视图 ----------------
     def get(self, key, default=None):
         return self.data.get(key, default if default is not None else DEFAULT_CONFIG.get(key))
 
@@ -188,23 +246,24 @@ class Config:
         for k, v in kw.items():
             self.data[k] = v
 
-    def save(self):
-        """key 进 secrets.json，config.json 只留空位。"""
-        self._write_secrets({k: self.data.get(k) for k in SECRET_KEYS if (self.data.get(k) or "").strip()})
-        # 保留 data 里所有键，不只 DEFAULT_CONFIG 白名单：以前手改的
-        # daily_limit / ollama_model / openai_model 会在下次保存设置时被悄悄丢掉
-        out = {k: ("" if k in SECRET_KEYS else v) for k, v in self.data.items()}
-        for k, v in DEFAULT_CONFIG.items():
-            out.setdefault(k, "" if k in SECRET_KEYS else v)
-        atomic_write_json(self.path, out, mode=0o644)
-
     def public_view(self):
-        """给前端看的配置：不含任何 key。"""
+        """给前端看的配置：永远不含 key 真值，只说配没配。"""
+        provs = []
+        for p in self.providers():
+            q = dict(p)
+            q["has_key"] = bool(self.provider_key(p["id"]))
+            provs.append(q)
         return {
             "system_prompt": self.get("system_prompt"),
             "agent_mode": self.get("agent_mode"),
-            "has_glm_key": bool(self.get("glm_key")),
-            "has_deepseek_key": bool(self.get("api_key")),
-            "has_openai_key": bool(self.get("openai_key")),
-            "has_anthropic_key": bool(self.get("anthropic_key")),
+            "providers": provs,
+            "current_provider": self.get("current_provider") or "",
+            "current_model": self.get("current_model") or "",
         }
+
+    def describe_secrets(self):
+        out = {}
+        for p in self.providers():
+            v = self.provider_key(p["id"])
+            out[p["id"]] = {"configured": bool(v), "masked": (v[:5] + "…" + v[-4:]) if len(v) >= 12 else ("…" if v else "")}
+        return out

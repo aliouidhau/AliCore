@@ -36,6 +36,7 @@ if sys.stderr is None:
 import webview
 
 from alicore_agent import build_agent, LLMError
+from alicore_agent.llm import models_url
 from alicore_agent.engine import CANCELLED_MARK
 from alicore_agent.session_store import SessionStore
 from alicore_agent.paths import resolve_paths, ensure_dirs, default_data_dir
@@ -60,13 +61,7 @@ RUNTIME_DIR = os.environ.get("ALICORE_RUNTIME_DIR") or os.path.join(DATA_DIR, "_
 BASE_DIR = DATA_DIR  # 旧名兼容；新代码优先用 DATA_DIR
 HISTORY_FILE = os.path.join(DATA_DIR, "chat_history.json")
 UI_PREFS_FILE = os.path.join(DATA_DIR, "ui_preferences.json")
-MODEL_NAMES = {
-    "glm-4-flash",
-    "deepseek-chat",
-    "deepseek-v4-pro",
-    "deepseek-flash",
-    "deepseek-v4-flash-vision-exp",
-}
+# 模型不再写死：用户接入哪家服务商，就用哪家 /v1/models 返回的列表。
 # MEMORY_KINDS / MEMORY_PIN_KINDS 已从 alicore_agent.memory 导入（内核单一来源）
 HTML_FILE = os.path.join(APP_DIR, "ui_v2.html")
 START_LOG = os.path.join(DATA_DIR, "_startup.log")
@@ -478,7 +473,7 @@ class Api:
         if prefs.get("sendMode") in ("enter", "ctrl"):
             current["sendMode"] = prefs["sendMode"]
         model = str(prefs.get("model") or "").strip()
-        if model in MODEL_NAMES:
+        if model:
             current["model"] = model
         try:
             atomic_write_json(UI_PREFS_FILE, current, mode=0o644)
@@ -487,37 +482,85 @@ class Api:
             _log(f"[界面设置] 保存失败: {e}")
             return False
 
-    def save_config(self, key, prompt, glm_key=""):
+    def save_config(self, key="", prompt="", glm_key=""):
+        """只保存人设。Key 的入场在 add_provider，这里不再收。"""
         if getattr(self, "safe_mode", False):
             return "🔒 安全模式已禁用配置写入。正常启动阿鲤再保存。"
         cfg = self._agent.config
-        if key:
-            cfg.set_many(api_key=key)
-        if glm_key:
-            cfg.set_many(glm_key=glm_key)
         cfg.set_many(system_prompt=prompt or "")
         cfg.save()
         return "配置已保存"
 
-    def save_api_keys(self, key="", glm_key=""):
-        """只管 Key，不碰人设。
+    # ---------------- 模型接入 ----------------
+    def _models_of(self, base_url, key):
+        """读服务商的模型列表。读不到就报错，不猜。"""
+        url = models_url(base_url)
+        try:
+            resp = requests.get(url, headers={"Authorization": f"Bearer {key}"}, timeout=25)
+        except requests.Timeout:
+            raise RuntimeError("连不上这个地址（超时）。检查 Base URL 和网络")
+        except Exception as e:
+            raise RuntimeError(f"连不上这个地址：{e}")
+        if resp.status_code == 401:
+            raise RuntimeError("Key 不对（401）。复制完整，别带空格")
+        if resp.status_code == 404:
+            raise RuntimeError("这个地址没有 /v1/models 接口。Base URL 可能填错了（一般填到 /v1 为止）")
+        if resp.status_code >= 400:
+            raise RuntimeError(f"读取模型列表失败（{resp.status_code}）：{resp.text[:200]}")
+        try:
+            data = resp.json()
+        except Exception:
+            raise RuntimeError("返回的不是 JSON，这个地址多半不是 OpenAI 兼容接口")
+        items = data.get("data") if isinstance(data, dict) else None
+        if not isinstance(items, list):
+            raise RuntimeError("返回里没有模型列表（data），这个地址可能不是 OpenAI 兼容接口")
+        models = []
+        for it in items:
+            mid = (it.get("id") or "").strip() if isinstance(it, dict) else ""
+            if mid:
+                models.append(mid)
+        return models
 
-        UI 把「接入 API」和「设置」拆成了两个弹窗，如果还让 API 弹窗走 save_config，
-        prompt 会传空串，而 save_config 里 `system_prompt=prompt or ""` 会把整段人设清掉。
-        拆开存，各管各的。
-        """
+    def add_provider(self, name="", base_url="", key=""):
+        """接入：先真的拉到模型，再落盘。拉不到就不算接入成功。"""
         if getattr(self, "safe_mode", False):
-            return "🔒 安全模式已禁用密钥写入。正常启动阿鲤再保存。"
+            return {"ok": False, "error": "🔒 安全模式已禁用密钥写入"}
+        base = (base_url or "").strip()
+        if not base:
+            return {"ok": False, "error": "Base URL 不能为空"}
+        if not base.lower().startswith(("http://", "https://")):
+            return {"ok": False, "error": "Base URL 要以 http:// 或 https:// 开头"}
+        k = (key or "").strip()
+        if not k:
+            return {"ok": False, "error": "API Key 不能为空"}
+        try:
+            models = self._models_of(base, k)
+        except RuntimeError as e:
+            return {"ok": False, "error": str(e)}
+        if not models:
+            return {"ok": False, "error": "这个服务商返回了空的模型列表"}
         cfg = self._agent.config
-        saved = []
-        if key:
-            cfg.set_many(api_key=key)
-            saved.append("DeepSeek")
-        if glm_key:
-            cfg.set_many(glm_key=glm_key)
-            saved.append("GLM")
-        cfg.save()
-        return ("已保存：" + " / ".join(saved)) if saved else "两个框都是空的，没有改动"
+        entry = cfg.set_provider({"name": name, "base_url": base, "models": models}, k)
+        return {"ok": True, "provider": entry, "models": models,
+                "message": f"已接入 {entry['name']}，{len(models)} 个模型"}
+
+    def remove_provider(self, provider_id=""):
+        pid = (provider_id or "").strip()
+        if not pid:
+            return {"ok": False, "error": "缺少服务商 id"}
+        self._agent.config.remove_provider(pid)
+        return {"ok": True}
+
+    def select_model(self, provider_id="", model=""):
+        pid = (provider_id or "").strip()
+        m = (model or "").strip()
+        prov = self._agent.config.provider(pid)
+        if prov is None:
+            return {"ok": False, "error": "这个服务商不存在了"}
+        if m not in (prov.get("models") or []):
+            return {"ok": False, "error": "这个模型不在该服务商的列表里"}
+        self._agent.config.set_current_model(pid, m)
+        return {"ok": True, "provider": pid, "model": m}
 
     # ---------------- 插件管理（手动开关，默认全关） ----------------
     def get_plugins(self):
@@ -1181,7 +1224,7 @@ class Api:
         """让阿鲤讲解这次报错：先说错在哪、为什么错、最小改法、自测题。
 
         不写主聊天历史，只在靶场面板里显示；跑成功时不触发，报错才花钱。
-        走 DeepSeek，额度见底或没配 Key 时自动回落 GLM（免费档）。
+        走当前接入的模型。没接入模型时直接返回「先接入 API」。
         """
         result = result or {}
         code = (content or "").strip()
@@ -1227,7 +1270,7 @@ class Api:
         messages = [{"role": "system", "content": sys_msg}, {"role": "user", "content": user_msg}]
         text, provider, tokens = "", "", 0
         try:
-            resp = self._agent.llm.chat(messages, provider="glm", temperature=0.25, timeout=120)
+            resp = self._agent.llm.chat(messages, temperature=0.25, timeout=120)
         except LLMError as e:
             return {"ok": True, "line": hint["line"], "error": hint["error"],
                     "quick": hint["quick"], "text": f"（模型没连上，先看这条）{e}",
@@ -1815,7 +1858,7 @@ class Api:
         messages = [{"role": "system", "content": sys_msg}, {"role": "user", "content": user_msg}]
         text, provider, tokens = "", "", 0
         try:
-            resp = self._agent.llm.chat(messages, provider="glm", temperature=0.25, timeout=120)
+            resp = self._agent.llm.chat(messages, temperature=0.25, timeout=120)
         except LLMError as e:
             text = f"（模型没连上，先看本地验收结果）{e}"
             return {"ok": True, "text": text, "provider": "", "tokens": 0, "passed": bool(passed)}
@@ -2029,19 +2072,20 @@ class Api:
         last = max((int(e.get("seq", 0)) for e in events), default=since)
         return {"events": new, "last": last}
 
-    def chat(self, user_text, model_name="glm-4-flash", plugin_id=""):
+    def chat(self, user_text, model_name="", provider_id="", plugin_id=""):
         """前端唯一的聊天入口，返回字符串（契约不变）。
 
-        第二个参数是前端菜单传下来的模型名（glm-4-flash / deepseek-chat /
-        deepseek-v4-pro 等），名字以 deepseek 开头就走 DeepSeek，否则回落 GLM。
-        第三个参数是前端「带入对话」的插件 id：只挂这一轮的工具，发完即卸，不落盘。
+        第二个参数是前端菜单传下来的模型名，第三个是服务商 id；两个都来自
+        「接入 API」时拉到的模型列表，后端不再写死任何模型名。
+        第四个参数是前端「带入对话」的插件 id：只挂这一轮的工具，发完即卸，不落盘。
         """
         user_ts = time.strftime("%m-%d %H:%M")
         user_epoch = time.time()
         # 用户这句话先落盘：模型报错、进程崩了，它也不会凭空消失
         self._session_append("user", user_text, user_ts, user_epoch)
         try:
-            result = self._agent.chat(user_text, self.history, model_name, plugin_id=plugin_id or None)
+            result = self._agent.chat(user_text, self.history, model_name, plugin_id=plugin_id or None,
+                                      provider_id=provider_id or None)
         except LLMError as e:
             self.history.append({"role": "user", "content": user_text, "ts": user_ts, "timestamp": user_epoch})
             return f"❌ {e}"
@@ -2126,9 +2170,9 @@ class Api:
     def vision_chat(self, text, imgs=None):
         """识图入口。imgs 是前端 FileReader 出来的 dataURL 数组。
 
-        链路：GLM-4V 看图 -> 产出文字描述 -> 描述作为上下文交给阿鲤（默认 GLM），
-        由她基于描述回答。GLM 负责看（免费档），默认也由 GLM 负责想和说，省钱。
-        旧实现把 GLM 描述原样返回，阿鲤全程没参与，等于她「看不到图」。
+        链路：当前接入的模型看图 -> 产出文字描述 -> 描述作为上下文交给同一个模型，
+        由她基于描述回答。看图要求模型支持 OpenAI 兼容的 image_url 多模态格式。
+        旧实现把描述原样返回，阿鲤全程没参与，等于她「看不到图」。
         """
         imgs = imgs or []
         if not isinstance(imgs, list):
@@ -2138,7 +2182,7 @@ class Api:
 
         user_ts = time.strftime("%m-%d %H:%M")
         user_epoch = time.time()
-        # 1) GLM 读图，拿到文字描述
+        # 1) 模型读图，拿到文字描述
         try:
             caption = self._agent.llm.vision(text, imgs)
         except LLMError as e:
@@ -2147,7 +2191,7 @@ class Api:
             return f"❌ 识图出错：{type(e).__name__}: {e}"
 
         caption = (caption or "（没看清）").strip()
-        # 别让 GLM 的长篇描述把下一轮 token 吃光：截到 1600 字，够她把图说清
+        # 别让长篇描述把下一轮 token 吃光：截到 1600 字，够她把图说清
         if len(caption) > 1600:
             caption = caption[:1600] + "\n（描述过长，已截断）"
 
@@ -2160,14 +2204,14 @@ class Api:
         )
 
         try:
-            result = self._agent.chat(user_msg, self.history, "glm-4-flash")
+            result = self._agent.chat(user_msg, self.history, "")
         except LLMError as e:
             return f"❌ {e}"
         except Exception as e:
             return f"❌ 运行出错：{type(e).__name__}: {e}"
 
         reply = result.get("reply") or "（没说话）"
-        # 历史只存用户原话的精简版，不存 GLM 的中间描述，省 token
+        # 历史只存用户原话的精简版，不存中间的长描述，省 token
         short_user = f"[图×{len(imgs)}] {question}"
         self.history.append({"role": "user", "content": short_user, "ts": user_ts, "timestamp": user_epoch})
         assistant_msg = {"role": "assistant", "content": reply,
@@ -2178,7 +2222,7 @@ class Api:
         return reply
 
     def doc_ocr_vision(self, text, imgs=None):
-        """文档 OCR 入口：本地 DeepSeek-OCR 转 Markdown -> 阿鲤（默认 GLM）用人设回答。
+        """文档 OCR 入口：本地 DeepSeek-OCR 转 Markdown -> 阿鲤（当前模型）用人设回答。
 
         和 vision_chat 的区别：这一步 OCR 完全在本地 Ollama 上跑，零 token；
         识别完把 Markdown 交给阿鲤回答。插件默认关闭，需在「管理插件」手动开。
@@ -2189,7 +2233,7 @@ class Api:
         if not imgs:
             return self.chat(text)
 
-        # 开关与就绪检查，没开/没下好模型就明说，不偷偷切回 GLM
+        # 开关与就绪检查，没开/没下好模型就明说，不偷偷降级
         try:
             pm = self._agent.plugins
             if not pm.is_enabled("doc_ocr"):
@@ -2238,7 +2282,7 @@ class Api:
             f"把它当作你亲眼读到的内容，直接回应。]\n{ocr_text[:8000]}"
         )
         try:
-            result = self._agent.chat(user_msg, self.history, "glm-4-flash")
+            result = self._agent.chat(user_msg, self.history, "")
         except LLMError as e:
             return f"❌ {e}"
         except Exception as e:

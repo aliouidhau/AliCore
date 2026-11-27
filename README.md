@@ -12,7 +12,7 @@
 AliCore/
 ├─ ali_app.py          # 入口：窗口 + API 薄壳
 ├─ ui_v2.html           # 单文件前端（HTML/CSS/JS 一体）
-├─ alicore_agent/       # 内核：引擎 / 模型 / 工具 / 记忆 / 会话 / 额度
+├─ alicore_agent/       # 内核：引擎 / 模型 / 工具 / 记忆 / 会话
 ├─ assets/              # 图标与立绘（不含语音）
 ├─ workspace/           # 靶场：40 课教程 / 练习模板 / 题库 / 分步导学 / 语音稿
 ├─ tools/               # GPT-SoVITS 语音合成辅助脚本
@@ -27,9 +27,12 @@ AliCore/
    ```
    pip install -r requirements.txt
    ```
-2. **准备 API key**（DeepSeek / 智谱 GLM / OpenAI 兼容中转任一）：
-   - 配在 `%APPDATA%\AliCore\secrets.json`，或启动后点左下角「接入 API」
-   - 也认环境变量：`ALICORE_DEEPSEEK_KEY` / `ALICORE_GLM_KEY` / `ALICORE_OPENAI_KEY` / `ALICORE_ANTHROPIC_KEY`
+2. **接入模型**（第一次打开时模型菜单是空的，这是故意的）：
+   - 点输入框右侧的模型按钮 →「接入 API」
+   - 填服务商名字 + Base URL + API Key；程序会去 `GET {Base URL}/v1/models` 真的拉一次模型列表，拉到了才算接入成功
+   - Base URL 一般填到 `/v1` 为止，例如 `https://api.deepseek.com/v1`；填域名也行，程序会自动补 `/v1`
+   - Key 存在 `%APPDATA%\AliCore\secrets.json`，不写进 config.json，也不下发给界面
+   - 目前只支持 OpenAI 兼容协议的服务商；Anthropic 原生协议不支持
 3. **启动**
    ```
    python ali_app.py

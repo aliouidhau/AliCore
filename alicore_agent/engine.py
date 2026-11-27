@@ -85,7 +85,7 @@ MEMORY_INJECT_K = 3      # 超过后每次检索注入的最多条数
 # 导致「你还记得我的红线吗」也注入 0 条。身份/红线这种东西不能靠检索碰运气。
 # 类型常量与 ID/写原语都在 memory.py 里定义（桌面端和引擎共用一套）
 
-# 会话滚动摘要：L1 层。每聊满 N 轮，用 GLM 免费档把这段压成几条要点，
+# 会话滚动摘要：L1 层。每聊满 N 轮，用当前接入的模型把这段压成几条要点，
 # 追加进 session.md；每轮只注入最新一段（上限 600 字），总量不随聊多久涨 token。
 SUMMARY_EVERY = 6          # 每 N 轮（1 问 1 答）做一次摘要
 SUMMARY_MAX_ITEMS = 5      # 每次摘要最多保留的要点数
@@ -102,8 +102,8 @@ L2_MERGE_AT = 5
 L2_MAX_ITEMS = 5
 L2_MARK = "【长期脉络】"
 
-# 长期记忆抽取：每 N 轮用本地 Ollama 从对话里抽稳定事实，后台异步写进 memory.md。
-# 零 API token——抽的是本地算力，不占 DeepSeek/GLM 额度。
+# 长期记忆抽取：每 N 轮用当前接入的模型从对话里抽稳定事实，后台异步写进 memory.md。
+# 会花一点 token，但不用再维护第二套本地模型。
 MEMORY_EXTRACT_EVERY = 12   # 每 N 轮（1问1答）抽一次
 
 # 重复调用提醒：同一工具 + 完全相同的参数连续重复到这些次数时，追加一句提醒。
@@ -115,7 +115,7 @@ MEMORY_EXTRACT_MAX = 6      # 每次最多写入几条
 
 # 规则式偏好捕获（抄 dsh-engram 的 autoCapturePreferences）：
 # 用户纠正她的那句话，按句式立刻记下来，零 LLM、零 token。
-# 靠 Ollama 每 12 轮抽是兜底，不是主力——小模型会把助手的行为记成用户的事实。
+# 靠 Ollama 每 12 轮抽是补充，不是主力——小模型会把助手的行为记成用户的事实。
 PREF_CAPTURE_PER_SESSION = 8    # 一个会话最多记这么多条偏好
 PREF_CAPTURE_MAX_ENTRIES = 40   # 记忆本总量上限，超了就不再自动加
 
@@ -425,20 +425,19 @@ class BaseStationAgent:
             raise TurnCancelled("用户暂停了这一轮")
 
     # ---------------- 对外入口 ----------------
-    def chat(self, user_text, history=None, model_name=None, plugin_id=None):
+    def chat(self, user_text, history=None, model_name=None, plugin_id=None, provider_id=None):
         self.events.clear()
         self._cancel_flag.clear()
         _turn_t0 = time.time()
         turn_id = self.events.begin_turn("t" + uuid.uuid4().hex[:10])
-        # 每轮清零。原来只在 __init__ 里初始化一次，UI 上看到的是开机以来的累计，
-        # 永远看不出这一轮花了多少——对一个盯着月耗 10 元的项目，这是最该准的数。
-        # 跨天累计另有 budget 账本在管，不用这里兼职。
+        # 每轮清零。只统计这一轮，不累计开机以来的总量。
         self.stats = {
             "prompt_tokens": 0, "completion_tokens": 0, "calls": 0,
             "cache_hit": 0, "last_prompt_tokens": 0, "last_completion_tokens": 0,
             "last_cache_hit": 0,
         }
         self._model_name = model_name
+        self._provider_id = provider_id
         low = (user_text or "").lower()
         self._low_temp = any(h in low for h in self.DOC_HINTS)
         self.events.emit("turn/start", label=(user_text or "")[:40],
@@ -784,7 +783,7 @@ class BaseStationAgent:
             content = resp.get("content") or ""
 
             if not calls and not content.strip() and rnd == 1:
-                # 模型偶尔返回空包（GLM 免费档会这样），补一次，别让用户看到空白
+                # 模型偶尔返回空包，补一次，别让用户看到空白
                 self.events.emit("error", label="模型返回空包，重试一次")
                 resp = self._call(messages, tools=schemas)
                 calls = resp.get("tool_calls") or []
@@ -1068,6 +1067,7 @@ class BaseStationAgent:
             tools=tools,
             temperature=temperature,
             model_name=getattr(self, "_model_name", None),
+            provider=getattr(self, "_provider_id", None),
         )
         usage = resp.get("usage") or {}
         prompt = usage.get("prompt_tokens", 0) or 0
@@ -1281,7 +1281,7 @@ class BaseStationAgent:
             return 0.0
 
     def _maybe_summarize(self, history, user_text, reply):
-        """每聊满 SUMMARY_EVERY 轮，用 GLM 免费档把未摘要的对话压成要点。
+        """每聊满 SUMMARY_EVERY 轮，用当前模型把未摘要的对话压成要点。
 
         2026-11-24 补：除了固定 6 轮，还在上下文压力超过 75% 时允许提前压；
         但至少等 2 轮，避免一句话一摘要把免费档也拖慢。
@@ -1290,7 +1290,7 @@ class BaseStationAgent:
         """
         # 冷启动：状态文件从未写过（summarized_msgs=0），但 history 已经很长——
         # 那是启用摘要前攒下的旧对话。不追补旧账：把已有历史都视为已摘要，
-        # 从这轮之后的新对话开始滚动，避免第一轮就把几百条旧消息塞给 GLM。
+        # 从这轮之后的新对话开始滚动，避免第一轮就把几百条旧消息塞给模型。
         if self._summarized_msgs == 0 and len(history) > SUMMARY_EVERY * 2:
             self._summarized_msgs = len(history)
             self._save_summarized_msgs(len(history))
@@ -1338,7 +1338,6 @@ class BaseStationAgent:
         try:
             resp = self.llm.chat(
                 [{"role": "user", "content": prompt}],
-                provider="glm",
                 temperature=0.2,
                 timeout=60,
             )
@@ -1368,7 +1367,7 @@ class BaseStationAgent:
         不合并的话，早期的摘要写进去就再也不会被读到——等于没记。
         合并后总段数回落，早期信息被压进一段脉络里，跟着后面几段一起被注入。
 
-        用 GLM 免费档，失败静默（记忆是附加品，不能挡聊天）。
+        用当前模型，失败静默（记忆是附加品，不能挡聊天）。
         """
         path = os.path.join(self.work_dir, "knowledge", "session.md")
         try:
@@ -1392,7 +1391,6 @@ class BaseStationAgent:
         try:
             resp = self.llm.chat(
                 [{"role": "user", "content": prompt}],
-                provider="glm",
                 temperature=0.2,
                 timeout=60,
             )
@@ -1410,7 +1408,7 @@ class BaseStationAgent:
             return
         self.events.emit("thought", label="摘要已合并为长期脉络（%d 段→1 段）" % len(old))
 
-    # ---------------- 长期记忆抽取（Ollama 本地，零 API） ----------------
+    # ---------------- 长期记忆抽取（当前模型，后台异步） ----------------
     def _load_extracted_msgs(self):
         try:
             with open(self._memory_state_path, "r", encoding="utf-8") as f:
@@ -1428,10 +1426,9 @@ class BaseStationAgent:
             pass
 
     def _maybe_extract_memory(self, history, user_text, reply):
-        """每 N 轮，用本地 Ollama 从对话里抽稳定事实，写进长期记忆 memory.md。
+        """每 N 轮，用当前接入的模型从对话里抽稳定事实，写进长期记忆 memory.md。
 
-        后台异步：Ollama 首次加载要几十秒，不能挡聊天；抽失败也静默，
-        下轮再试。抽取零 API token——吃的是本地算力。
+        后台异步：不挡聊天；抽失败也静默，下轮再试。
         """
         # 冷启动：老历史不追补（跟会话摘要同一套逻辑）
         if self._extracted_msgs == 0 and len(history) > MEMORY_EXTRACT_EVERY * 2:
@@ -1484,7 +1481,6 @@ class BaseStationAgent:
             try:
                 resp = self.llm.chat(
                     [{"role": "user", "content": prompt}],
-                    provider="ollama",
                     temperature=0.2,
                     timeout=300,
                 )

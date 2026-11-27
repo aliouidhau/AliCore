@@ -350,10 +350,28 @@
   #modelBtn:hover { color:var(--text-soft); background:var(--panel-2); border-color:var(--line); }
   #modelLabel { max-width:132px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   #modelMenu {
-    display:none; position:absolute; right:0; bottom:39px; width:218px;
+    display:none; position:absolute; right:0; bottom:39px; width:252px;
     background:#10191e; border:1px solid var(--line-strong); border-radius:6px;
     padding:6px; box-shadow:0 16px 40px rgba(0,0,0,.5); z-index:100;
+    max-height:340px; overflow-y:auto;
   }
+  .model-empty { padding:10px 8px 8px; text-align:center; }
+  .model-empty-title { color:var(--text-soft); font-size:11px; }
+  .model-empty-sub { color:var(--muted); font-size:10px; line-height:1.55; margin:6px 0 9px; }
+  .model-group-head { padding:8px 9px 3px; color:var(--accent); font-family:var(--mono); font-size:9px; letter-spacing:.08em; text-transform:uppercase; }
+  .model-item.model-remove { color:#c98a80; font-size:10px; }
+  .model-item.model-add { color:var(--accent); font-family:var(--mono); font-size:10px; }
+  .api-error { margin-top:10px; padding:8px 10px; border:1px solid rgba(226,138,120,.4); border-radius:4px; background:rgba(226,138,120,.08); color:#f0b3a6; font-size:11px; line-height:1.5; }
+  .provider-list { margin-top:14px; }
+  .provider-list-title { color:var(--muted); font-family:var(--mono); font-size:9px; letter-spacing:.08em; margin-bottom:6px; }
+  .provider-row { display:flex; align-items:center; gap:10px; padding:8px 10px; border:1px solid var(--line); border-radius:4px; margin-bottom:6px; }
+  .provider-row-main { flex:1; min-width:0; display:flex; flex-direction:column; gap:3px; }
+  .provider-row-main b { font-size:11px; color:var(--text); }
+  .provider-row-main span { font-size:9px; color:var(--muted); font-family:var(--mono); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .provider-row-right { display:flex; align-items:center; gap:8px; }
+  .provider-row-right em { font-style:normal; font-size:9px; color:var(--muted); font-family:var(--mono); }
+  .btn.mini { padding:3px 8px; font-size:10px; }
+  .api-tip { margin-top:12px; color:var(--muted); font-size:10px; line-height:1.6; }
   .model-item {
     display:flex; align-items:center; gap:8px; padding:8px 9px;
     border-radius:3px; cursor:pointer; color:var(--text-soft); font-size:11px;
@@ -1870,15 +1888,15 @@ button.paint-mode-chip:hover, button.paint-mode-chip.active { color:#dffff4; bor
           <div id="modelDropdown">
             <div id="modelBtn">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 10v6m11-11h-6m-10 0H1"/></svg>
-              <span id="modelLabel">GLM-4-Flash（免费）</span>
+              <span id="modelLabel">未接入模型</span>
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M6 9l6 6 6-6"/></svg>
             </div>
             <div id="modelMenu">
-              <div class="model-item" data-model="glm-4-flash"><span class="model-glyph">00</span>GLM-4-Flash（免费）<span class="check" style="display:inline;">✓</span></div>
-              <div class="model-item" data-model="deepseek-chat"><span class="model-glyph">01</span>DeepSeek-V4-Flash 通用<span class="check">✓</span></div>
-              <div class="model-item" data-model="deepseek-v4-pro"><span class="model-glyph">02</span>DeepSeek-V4-Pro<span class="check">✓</span></div>
-              <div class="model-item" data-model="deepseek-flash"><span class="model-glyph">03</span>DeepSeek-V4.1-Flash<span class="check">✓</span></div>
-              <div class="model-item" data-model="deepseek-v4-flash-vision-exp"><span class="model-glyph">04</span>DeepSeek-V4-Vision（实验）<span class="check">✓</span></div>
+              <div class="model-empty">
+                <div class="model-empty-title">还没有接入模型</div>
+                <div class="model-empty-sub">填上官网给的 Base URL 和 Key，接入成功后模型才会出现在这里</div>
+                <button class="btn primary" onclick="event.stopPropagation(); openApi()">接入 API</button>
+              </div>
             </div>
           </div>
           <div class="tool-spacer"></div>
@@ -1923,7 +1941,7 @@ button.paint-mode-chip:hover, button.paint-mode-chip.active { color:#dffff4; bor
       <div class="metric"><span class="metric-label">短期上下文</span><div class="metric-line" id="ctxMetricLine" style="--fill:0%"></div><span class="metric-value" id="ctxMetricValue">--</span></div>
       <div class="metric"><span class="metric-label">摘要压力</span><div class="metric-line" id="summaryMetricLine" style="--fill:0%"></div><span class="metric-value" id="summaryMetricValue">IDLE</span></div>
       <div class="metric"><span class="metric-label">长期记忆</span><div class="metric-line" style="--fill:88%"></div><span class="metric-value">LOCAL</span></div>
-      <div class="current-model"><span>当前推理模型</span><b id="sideModel">GLM-4-FLASH</b></div>
+      <div class="current-model"><span>当前推理模型</span><b id="sideModel">—</b></div>
       <div class="token-panel" id="tokenPanel" onclick="openToken()" title="打开上下文用量详情">
         <div class="token-head"><span class="eyebrow">TOKEN // CONTEXT</span><button class="token-detail-btn" onclick="event.stopPropagation(); openToken()">详情</button></div>
         <div class="token-usage"><b id="tokenPct">--</b><span>上下文占用</span></div>
@@ -1974,13 +1992,18 @@ button.paint-mode-chip:hover, button.paint-mode-chip.active { color:#dffff4; bor
 <div id="apiModal" class="modal">
   <div class="modal-card">
     <div class="eyebrow" style="margin-bottom:8px;">CONNECTION // API</div>
-    <h3>接入 API</h3>
-    <p>两个 Key 各自独立，填哪个就存哪个，留空的不动。</p>
-    <label for="apiKeyInput">DeepSeek Key（思考用，sk-...）</label>
-    <input type="text" id="apiKeyInput" placeholder="sk-...">
-    <label for="glmKeyInput">GLM Key（识图用，智谱免费领）</label>
-    <input type="text" id="glmKeyInput" placeholder="智谱开放平台的免费 Key" style="margin-bottom:20px;">
-    <div class="modal-actions"><button class="btn" onclick="closeApi()">取消</button><button class="btn primary" onclick="saveKeys()">保存 Key</button></div>
+    <h3>接入模型</h3>
+    <p>去服务商官网申请一个 API Key，把它的 Base URL 和 Key 填进来。连得上、读得到模型列表才算接入成功。</p>
+    <label for="provNameInput">服务商名称（自己起，方便认）</label>
+    <input type="text" id="provNameInput" placeholder="DeepSeek">
+    <label for="provBaseInput">Base URL</label>
+    <input type="text" id="provBaseInput" placeholder="https://api.deepseek.com/v1">
+    <label for="provKeyInput">API Key</label>
+    <input type="password" id="provKeyInput" placeholder="sk-...">
+    <div class="api-error" id="apiError" hidden></div>
+    <div class="modal-actions"><button class="btn" onclick="closeApi()">取消</button><button class="btn primary" onclick="connectProvider()">接入并读取模型</button></div>
+    <div class="provider-list" id="providerList"></div>
+    <div class="api-tip">不知道填什么？去服务商官网的「API 文档 / 快速开始」页，那里会写 Base URL。DeepSeek 一般是 https://api.deepseek.com，OpenAI 兼容中转一般以 /v1 结尾。</div>
   </div>
 </div>
 
@@ -2917,9 +2940,12 @@ function closeToken() { hideModal(tokenModal); }
 const apiModal = $('#apiModal');
 const settingsModal = $('#settingsModal');
 const pluginsModal = $('#pluginsModal');
-const apiKeyInput = $('#apiKeyInput');
-const glmKeyInput = $('#glmKeyInput');
-const DEFAULT_PREFS = { character:true, fontSize:'13', motion:true, traces:true, sendMode:'enter', model:'glm-4-flash' };
+const provNameInput = $('#provNameInput');
+const provBaseInput = $('#provBaseInput');
+const provKeyInput = $('#provKeyInput');
+const apiError = $('#apiError');
+const providerList = $('#providerList');
+const DEFAULT_PREFS = { character:true, fontSize:'13', motion:true, traces:true, sendMode:'enter' };
 let prefs = {...DEFAULT_PREFS};
 try { prefs = {...DEFAULT_PREFS, ...JSON.parse(localStorage.getItem('ali_ui_prefs') || '{}')}; } catch (e) {}
 
@@ -2958,7 +2984,7 @@ bindPref('#prefFontSize', 'fontSize', false);
 bindPref('#prefMotion', 'motion');
 bindPref('#prefTraces', 'traces');
 bindPref('#prefSendMode', 'sendMode', false);
-function resetPrefs() { prefs = {...DEFAULT_PREFS}; syncPrefControls(); setModel(prefs.model, false); applyPrefs(); toast('软件设置已恢复默认'); }
+function resetPrefs() { prefs = {...DEFAULT_PREFS}; syncPrefControls(); refreshModelConfig(); applyPrefs(); toast('软件设置已恢复默认'); }
 function showModal(modal) {
   modal.getAnimations().forEach(a => a.cancel());
   modal.style.display = 'flex';
@@ -3047,26 +3073,63 @@ function renderArmed() {
 }
 applyPrefs(false);
 function openApi() {
-  apiKeyInput.value = '';
-  glmKeyInput.value = '';
-  if (window.pywebview && window.pywebview.api) {
-    window.pywebview.api.get_config().then(c => {
-      if (!c) return;
-      apiKeyInput.placeholder = c.has_deepseek_key ? '已配置（留空则不改动）' : 'sk-...';
-      glmKeyInput.placeholder = c.has_glm_key ? '已配置（留空则不改动）' : '智谱开放平台的免费 Key';
-    }).catch(() => {});
-  }
+  provNameInput.value = '';
+  provBaseInput.value = '';
+  provKeyInput.value = '';
+  apiError.hidden = true;
+  renderProviderList();
   showModal(apiModal);
 }
 function closeApi() { hideModal(apiModal); }
-function saveKeys() {
-  const key = apiKeyInput.value.trim();
-  const glmKey = glmKeyInput.value.trim();
-  if (!key && !glmKey) { toast('两个框都是空的，没有改动'); return; }
-  if (window.pywebview && window.pywebview.api) {
-    window.pywebview.api.save_api_keys(key, glmKey).then(res => { toast(res); closeApi(); });
-  }
+function renderProviderList() {
+  if (!window.pywebview || !window.pywebview.api) return;
+  window.pywebview.api.get_config().then(c => {
+    const provs = (c && c.providers) || [];
+    if (!provs.length) { providerList.innerHTML = ''; return; }
+    providerList.innerHTML = '<div class="provider-list-title">已接入</div>' + provs.map(p =>
+      '<div class="provider-row"><div class="provider-row-main"><b>' + escHtml(p.name) + '</b><span>' + escHtml(p.base_url) + '</span></div>'
+      + '<div class="provider-row-right"><em>' + ((p.models || []).length) + ' 个模型</em>'
+      + '<button class="btn mini" onclick="removeProvider(\'' + escHtml(p.id) + '\')">移除</button></div></div>'
+    ).join('');
+  }).catch(() => {});
 }
+function removeProvider(pid) {
+  if (!confirm('移除这个服务商？它的 Key 也会一起删掉。')) return;
+  window.pywebview.api.remove_provider(pid).then(() => { renderProviderList(); refreshModelConfig(); });
+}
+function connectProvider() {
+  const name = provNameInput.value.trim();
+  const base = provBaseInput.value.trim();
+  const key = provKeyInput.value.trim();
+  apiError.hidden = true;
+  if (!base) { showApiError('Base URL 不能为空'); return; }
+  if (!key) { showApiError('API Key 不能为空'); return; }
+  const btn = document.querySelector('#apiModal .btn.primary');
+  const old = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = '正在连接…'; }
+  window.pywebview.api.add_provider(name, base, key).then(res => {
+    if (!res || !res.ok) {
+      if (btn) { btn.disabled = false; btn.textContent = old; }
+      showApiError((res && res.error) || '接入失败');
+      return;
+    }
+    const pid = res.provider.id;
+    const first = (res.models || [])[0] || '';
+    const done = () => {
+      if (btn) { btn.disabled = false; btn.textContent = old; }
+      toast(res.message || '接入成功');
+      renderProviderList();
+      refreshModelConfig();
+      closeApi();
+    };
+    if (first) window.pywebview.api.select_model(pid, first).then(done).catch(done);
+    else done();
+  }).catch(err => {
+    if (btn) { btn.disabled = false; btn.textContent = old; }
+    showApiError('前端报错：' + err);
+  });
+}
+function showApiError(msg) { apiError.textContent = '❌ ' + msg; apiError.hidden = false; }
 $$('.modal').forEach(modal => modal.addEventListener('click', e => { if (e.target === modal) hideModal(modal); }));
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') { hideModal(apiModal); hideModal(settingsModal); hideModal(pluginsModal); hideModal(tokenModal); }
@@ -3248,7 +3311,7 @@ function dispatchChat(item) {
     } else {
       const pluginId = armedPlugin ? armedPlugin.id : '';
       if (pluginId) { armedPlugin = null; renderArmed(); }
-      window.pywebview.api.chat(text, currentModel, pluginId).then(async reply => {
+      window.pywebview.api.chat(text, currentModel, currentProvider, pluginId).then(async reply => {
         stopPoll(); await drainEvents();
         try {
           const tr = await window.pywebview.api.get_trace();
@@ -7067,7 +7130,8 @@ function refreshTools() {
 $$('.icon-btn[title="语音"]').forEach(btn => btn.addEventListener('click', () => toast('还没做语音，她现在只会打字')));
 
 // 图片选择与拖拽
-let currentModel = prefs.model || 'glm-4-flash';
+let currentModel = '';
+let currentProvider = '';
 let selectedImgs = [];
 let armedPlugin = null;   // 本轮带入对话的插件 {id, name}，发完即卸
 const imgInput = $('#imgInput');
@@ -7098,38 +7162,74 @@ document.body.addEventListener('drop', e => {
   });
 });
 
-// 模型菜单：记住上一次的选择；下次启动直接恢复。
+// 模型菜单：内容全部来自后端配置（用户接入了哪几家、各家能拉到哪些模型），不再写死。
 const modelBtn = $('#modelBtn');
 const modelMenu = $('#modelMenu');
 const modelLabel = $('#modelLabel');
+let modelCatalog = [];
 modelBtn.addEventListener('click', e => {
   e.stopPropagation();
   modelMenu.style.display = modelMenu.style.display === 'block' ? 'none' : 'block';
 });
-function setModel(model, save = true) {
-  let item = Array.from(document.querySelectorAll('.model-item')).find(el => el.dataset.model === model);
-  if (!item) {
-    model = 'glm-4-flash';
-    item = Array.from(document.querySelectorAll('.model-item')).find(el => el.dataset.model === model);
+
+function renderModelMenu(cfg) {
+  modelCatalog = (cfg && cfg.providers) || [];
+  currentProvider = (cfg && cfg.current_provider) || '';
+  currentModel = (cfg && cfg.current_model) || '';
+  if (!modelCatalog.length) {
+    modelMenu.innerHTML = '<div class="model-empty"><div class="model-empty-title">还没有接入模型</div>'
+      + '<div class="model-empty-sub">填上官网给的 Base URL 和 Key，接入成功后模型才会出现在这里</div>'
+      + '<button class="btn primary" onclick="event.stopPropagation(); openApi()">接入 API</button></div>';
+    modelLabel.textContent = '未接入模型';
+    $('#sideModel').textContent = '—';
+    return;
   }
-  if (!item) return;
-  currentModel = model;
-  modelLabel.textContent = item.textContent.trim().replace('✓','').replace(/^\d+/,'').trim();
-  $('#sideModel').textContent = model.toUpperCase();
-  $$('.model-item .check').forEach(c => c.style.display = 'none');
-  item.querySelector('.check').style.display = 'inline';
-  if (save) {
-    prefs.model = model;
-    applyPrefs();
-  }
-}
-$$('.model-item').forEach(item => {
-  item.addEventListener('click', () => {
-    setModel(item.dataset.model, true);
-    modelMenu.style.display = 'none';
+  let html = '';
+  modelCatalog.forEach(p => {
+    html += '<div class="model-group"><div class="model-group-head">' + escHtml(p.name || '服务商') + '</div>';
+    (p.models || []).forEach((m, i) => {
+      const on = (p.id === currentProvider && m === currentModel);
+      html += '<div class="model-item" data-pid="' + escHtml(p.id) + '" data-model="' + escHtml(m) + '">'
+        + '<span class="model-glyph">' + String(i).padStart(2, '0') + '</span>' + escHtml(m)
+        + '<span class="check"' + (on ? ' style="display:inline;"' : '') + '>✓</span></div>';
+    });
+    html += '<div class="model-item model-remove" data-remove="' + escHtml(p.id) + '">移除 ' + escHtml(p.name || '这个服务商') + '</div></div>';
   });
+  html += '<div class="model-item model-add" data-add="1">+ 接入新的 API</div>';
+  modelMenu.innerHTML = html;
+  const prov = modelCatalog.find(p => p.id === currentProvider);
+  const active = currentModel || (prov && (prov.models || [])[0]) || '未接入模型';
+  modelLabel.textContent = active;
+  $('#sideModel').textContent = active.toUpperCase();
+}
+
+function refreshModelConfig() {
+  if (!window.pywebview || !window.pywebview.api) return Promise.resolve();
+  return window.pywebview.api.get_config().then(cfg => { renderModelMenu(cfg); return cfg; }).catch(() => {});
+}
+
+modelMenu.addEventListener('click', e => {
+  const item = e.target.closest('.model-item');
+  if (!item) return;
+  e.stopPropagation();
+  if (item.dataset.add) { modelMenu.style.display = 'none'; openApi(); return; }
+  if (item.dataset.remove) {
+    modelMenu.style.display = 'none';
+    removeProvider(item.dataset.remove);
+    return;
+  }
+  if (item.dataset.model) {
+    window.pywebview.api.select_model(item.dataset.pid, item.dataset.model).then(res => {
+      if (res && !res.ok) toast(res.error || '切换失败');
+      return refreshModelConfig();
+    });
+  }
+  modelMenu.style.display = 'none';
 });
-setModel(currentModel, false);
+
+// 老调用点（设置恢复默认等）只要求刷新，不再传死模型名
+function setModel() { refreshModelConfig(); }
+refreshModelConfig();
 document.addEventListener('click', () => { modelMenu.style.display = 'none'; });
 
 // 本地时钟，只是状态显示，不碰系统时间。
@@ -7148,7 +7248,7 @@ window.addEventListener('pywebviewready', function() {
         prefs = {...DEFAULT_PREFS, ...prefs, ...saved};
         syncPrefControls();
         applyPrefs(false);
-        setModel(prefs.model || currentModel, false);
+        refreshModelConfig();
       }
     }).catch(() => {});
     window.pywebview.api.get_history().then(history => {
@@ -7157,8 +7257,8 @@ window.addEventListener('pywebviewready', function() {
       updateEmptyState();
     });
     window.pywebview.api.get_config().then(config => {
-      if (config.has_deepseek_key) apiKeyInput.placeholder = '已配置，改动请重新填写';
-      if (config.has_glm_key) glmKeyInput.placeholder = '已配置，改动请重新填写';
+      renderModelMenu(config || {});
+      renderProviderList();
     });
     checkTcc();
     refreshRecent();
