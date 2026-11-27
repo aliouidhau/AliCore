@@ -175,6 +175,17 @@ python ali_app.py --data-dir D:\my-alicore-data --runtime-dir D:\my-alicore-runt
 
 或设环境变量 `ALICORE_DATA_DIR` / `ALICORE_RUNTIME_DIR`。
 
+## 打包成 exe（可选）
+
+```bat
+pip install pyinstaller
+pyinstaller ali_app.spec --noconfirm
+```
+
+产物在 `dist\阿鲤\`，整个文件夹一起发就行。界面、图标、40 课靶场、示例配置、LICENSE 都在 `_internal` 里；
+第一次启动会把这些播种到 `%APPDATA%\AliCore\workspace`，之后改的是数据目录那份，换新 exe 不会覆盖用户改过的题库。
+`plugins` 和 `config.json` 放 exe 同级，不进包。实测体积 143 MB（onedir）。
+
 ## 授权
 
 | 部分 | 授权 |

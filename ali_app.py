@@ -54,8 +54,12 @@ from alicore_agent import lessons as lesson_mod
 # 用户数据默认落到 %APPDATA%\AliCore，不写进代码仓库，也不和本机原有的阿鲤共用配置和密钥。
 if getattr(sys, "frozen", False):
     APP_DIR = os.path.dirname(os.path.abspath(sys.executable))
+    # 打包后只读资源（ui_v2.html / assets / workspace）在 PyInstaller 的 _internal 里，
+    # APP_DIR 留给用户放 plugins、改 config 这类可写的东西。
+    RES_DIR = getattr(sys, "_MEIPASS", APP_DIR)
 else:
     APP_DIR = os.path.dirname(os.path.abspath(__file__))
+    RES_DIR = APP_DIR
 DATA_DIR = default_data_dir()
 RUNTIME_DIR = os.environ.get("ALICORE_RUNTIME_DIR") or os.path.join(DATA_DIR, "_runtime")
 BASE_DIR = DATA_DIR  # 旧名兼容；新代码优先用 DATA_DIR
@@ -63,7 +67,7 @@ HISTORY_FILE = os.path.join(DATA_DIR, "chat_history.json")
 UI_PREFS_FILE = os.path.join(DATA_DIR, "ui_preferences.json")
 # 模型不再写死：用户接入哪家服务商，就用哪家 /v1/models 返回的列表。
 # MEMORY_KINDS / MEMORY_PIN_KINDS 已从 alicore_agent.memory 导入（内核单一来源）
-HTML_FILE = os.path.join(APP_DIR, "ui_v2.html")
+HTML_FILE = os.path.join(RES_DIR, "ui_v2.html")
 START_LOG = os.path.join(DATA_DIR, "_startup.log")
 ARCHIVE_DIR = os.path.join(DATA_DIR, "sessions")
 # C 练习场用的 TinyCC：首次点 C 教程时按需下载，解压到 runtime 目录，不碰系统目录。
@@ -102,7 +106,7 @@ def _seed_content():
     try:
         if os.path.normcase(os.path.abspath(APP_DIR)) == os.path.normcase(os.path.abspath(DATA_DIR)):
             return
-        src_root = os.path.join(APP_DIR, "workspace")
+        src_root = os.path.join(RES_DIR, "workspace")
         if not os.path.isdir(src_root):
             return
         dst_root = os.path.join(DATA_DIR, "workspace")
@@ -139,7 +143,7 @@ def _apply_paths(app_dir=None, data_dir=None, runtime_dir=None):
     BASE_DIR = DATA_DIR
     HISTORY_FILE = os.path.join(DATA_DIR, "chat_history.json")
     UI_PREFS_FILE = os.path.join(DATA_DIR, "ui_preferences.json")
-    HTML_FILE = os.path.join(APP_DIR, "ui_v2.html")
+    HTML_FILE = os.path.join(RES_DIR, "ui_v2.html")
     START_LOG = os.path.join(DATA_DIR, "_startup.log")
     ARCHIVE_DIR = os.path.join(DATA_DIR, "sessions")
     TCC_EXE = os.path.join(RUNTIME_DIR, "tcc", "tcc", "tcc.exe")
@@ -2552,8 +2556,8 @@ def start_app(argv=None):
     _log(f"窗口已创建 {time.time() - _t0:.1f}s")
     threading.Thread(target=_ensure_visible, args=(_t0,), daemon=True).start()
     webview.start(storage_path=storage_dir,
-                  icon=os.path.join(APP_DIR, "assets", "ali.ico")
-                  if os.path.exists(os.path.join(APP_DIR, "assets", "ali.ico")) else None)
+                  icon=os.path.join(RES_DIR, "assets", "ali.ico")
+                  if os.path.exists(os.path.join(RES_DIR, "assets", "ali.ico")) else None)
 
 
 if __name__ == "__main__":
