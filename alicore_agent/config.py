@@ -27,6 +27,7 @@ DEFAULT_CONFIG = {
     "max_steps": 4,
     "sandbox": True,
     "temperature": 0.85,
+    "reasoning_effort": "",      # ""=不发；low/medium/high/xhigh/max，只有推理模型认这个参数
     "history_limit": 0,          # 0 = 不按轮数截，按下面的字符预算装
     "history_char_budget": 0,    # 0 = 按 context_window 自动算
     "history_item_limit": 0,     # 0 = 单条不截断
@@ -284,6 +285,7 @@ class Config:
             "search_provider": self.get("search_provider") or "",
             "has_search_key": bool(self.data.get("search_key")),
             "assistant_name": self.get("assistant_name") or "",
+            "reasoning_effort": self.get("reasoning_effort") or "",
         }
 
     def describe_secrets(self):

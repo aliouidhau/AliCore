@@ -32,6 +32,7 @@ def main():
     assert cfg["current_provider"] == "", "示例配置不该预选服务商"
     assert cfg["history_char_budget_effective"] > 0, "自动上下文预算没算出来"
     assert cfg["context_window"] == 131072, f"上下文默认值不对：{cfg.get('context_window')}"
+    assert cfg["reasoning_effort"] == "", "推理强度默认应该是空（不发送该参数）"
 
     plugins = api.get_plugins()
     ids = [p["id"] for p in plugins]

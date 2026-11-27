@@ -593,6 +593,16 @@ class Api:
         cfg.save()
         return {"ok": True, "assistant_name": n}
 
+    def set_reasoning_effort(self, effort=""):
+        """推理强度。空 = 不发这个参数；只有推理模型认 low/high 这套取值。"""
+        e = (effort or "").strip().lower()
+        if e not in ("", "low", "medium", "high", "xhigh", "max"):
+            return {"ok": False, "error": "只支持 不设 / low / medium / high / xhigh / max"}
+        cfg = self._agent.config
+        cfg.set_many(reasoning_effort=e)
+        cfg.save()
+        return {"ok": True, "reasoning_effort": e}
+
     def set_search(self, provider="", key=""):
         """配联网搜索。key 只进 secrets.json，前端只拿 has_search_key。"""
         if getattr(self, "safe_mode", False):

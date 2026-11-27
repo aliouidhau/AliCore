@@ -98,6 +98,11 @@ class LLMClient:
             "messages": messages,
             "temperature": temperature if temperature is not None else self.config.get("temperature", 0.85),
         }
+        # 推理强度只对推理模型有意义（GPT-5 系列、o 系列、认这个参数的中转站）。
+        # 留空就不发这个字段：老模型和不认它的服务商会直接 400，所以默认不动。
+        _effort = str(self.config.get("reasoning_effort") or "").strip()
+        if _effort:
+            payload["reasoning_effort"] = _effort
         if tools:
             payload["tools"] = tools
 

@@ -9,6 +9,7 @@
   "max_steps": 4,
   "sandbox": true,
   "temperature": 0.85,
+  "reasoning_effort": "",
   "history_limit": 0,
   "history_char_budget": 0,
   "history_item_limit": 0,
