@@ -12,6 +12,9 @@ UI 不执行任何动作，凭证只在后端，执行环境可切换（Docker /
 
 from __future__ import annotations
 
+# 开源版版本号。改了记得同步 CHANGELOG.md。
+__version__ = "1.0.0"
+
 import os
 
 from .config import Config

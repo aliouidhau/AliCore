@@ -1,5 +1,7 @@
 # 阿鲤 · AliCore
 
+**v1.0.0** · 2026-11-27 · 改了什么见 [CHANGELOG.md](CHANGELOG.md)
+
 跑在自己电脑上的本地 AI 桌面助手：`pywebview` 壳 + 单文件 HTML 前端 + Python agent 内核。
 能聊天、读写文件、跑代码、生成文档，带一套能真的编译运行、有隐藏断言判题的 C/Python 教学靶场。
 
@@ -19,12 +21,14 @@ AliCore/
 ├─ workspace/           # 靶场：40 课教程 / 练习模板 / 题库 / 分步导学 / 语音稿
 ├─ plugins/             # 插件库（默认空，只带 README 与 ext 示例）
 ├─ tools/               # GPT-SoVITS 语音合成辅助脚本
+├─ tests/               # 冒烟自检，CI 也跑它
+├─ .github/             # Issue / PR 模板与 Windows CI
 ├─ config.example.json  # 配置模板，复制成 config.json 再用
 ├─ requirements.txt
+├─ CHANGELOG.md         # 更新记录
 ├─ NOTICE               # 第三方致谢与各项目许可证
 ├─ LICENSE              # 代码 MIT / 教程 CC BY-NC-SA 4.0
-├─ ali_app.spec         # PyInstaller 打包配置
-└─ ali_app.py           # 入口
+└─ ali_app.spec         # PyInstaller 打包配置
 ```
 
 ## 快速开始

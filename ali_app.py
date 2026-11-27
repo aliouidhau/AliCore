@@ -35,7 +35,7 @@ if sys.stderr is None:
 
 import webview
 
-from alicore_agent import build_agent, LLMError
+from alicore_agent import build_agent, LLMError, __version__ as APP_VERSION
 from alicore_agent.llm import models_url
 from alicore_agent.engine import CANCELLED_MARK
 from alicore_agent.session_store import SessionStore
@@ -460,6 +460,8 @@ class Api:
             view["history_char_budget_effective"] = self._agent._char_budget()
         except Exception:
             view["history_char_budget_effective"] = 0
+        # 设置面板的「关于」显示版本，方便别人报 bug 时说清楚自己用的是哪版
+        view["version"] = APP_VERSION
         return view
 
     def get_ui_prefs(self):

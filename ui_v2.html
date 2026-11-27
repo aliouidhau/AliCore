@@ -2095,6 +2095,13 @@ button.paint-mode-chip:hover, button.paint-mode-chip.active { color:#dffff4; bor
       </div>
     </div>
 
+    <div class="settings-group">
+      <div class="settings-caption">ABOUT // 关于</div>
+      <div class="setting-row">
+        <div><span class="setting-name">阿鲤 · AliCore</span><small id="appVersion">—</small></div>
+      </div>
+    </div>
+
     <div class="modal-actions" style="margin-top:16px;"><button class="btn" onclick="resetPrefs()">恢复默认</button><button class="btn primary" onclick="closeSettings()">完成</button></div>
   </div>
 </div>
@@ -3084,6 +3091,8 @@ function openSettings() {
       if (ns) ns.textContent = (c && c.assistant_name)
         ? ('她会自称：' + c.assistant_name)
         : '不派名字（默认）';
+      const ver = document.getElementById('appVersion');
+      if (ver) ver.textContent = 'v' + ((c && c.version) || '—') + ' · 开源源码版';
     }).catch(() => {});
   }
   showModal(settingsModal);

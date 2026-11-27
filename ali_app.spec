@@ -23,6 +23,7 @@ for _rel, _dst in (
     ("LICENSE", "."),
     ("NOTICE", "."),
     ("README.md", "."),
+    ("CHANGELOG.md", "."),
     ("assets", "assets"),
     ("workspace", "workspace"),
 ):
