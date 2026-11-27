@@ -1,14 +1,14 @@
 # 阿鲤 · AliCore
 
-**v1.0.0** · 2026-11-27 · 改了什么见 [CHANGELOG.md](CHANGELOG.md)
+**v1.0.0** · 2026-11-27 · 更新内容见 [CHANGELOG.md](CHANGELOG.md)
 
-跑在自己电脑上的本地 AI 桌面助手：`pywebview` 壳 + 单文件 HTML 前端 + Python agent 内核。
-能聊天、读写文件、跑代码、生成文档，带一套能真的编译运行、有隐藏断言判题的 C/Python 教学靶场。
+运行在本机的桌面 AI 助手，由 `pywebview` 外壳、单文件 HTML 前端和 Python agent 内核组成。
+支持对话、文件读写、代码执行与文档生成，内置一套可实际编译运行、带隐藏断言判题的 C/Python 教学靶场。
 
 ![界面](assets/ali_ui_preview.png)
 
-> 这是「避险版」仓库：只放代码、教程内容和示例配置。会话、记忆、学习进度、个人配置
-> 全部在运行时目录；语音音频不进仓库，没有音频时用 Windows 内置语音现场合成。
+> 仓库仅包含代码、教程内容与示例配置。会话、记忆、学习进度和个人配置均存放于运行时目录；
+> 语音音频不纳入仓库，缺少音频时使用 Windows 内置语音实时合成。
 
 ## 结构
 
@@ -33,32 +33,52 @@ AliCore/
 
 ## 快速开始
 
-**A. 直接用打好的包（大多数人）**
+### 方式一：使用预编译包
 
-双击 `阿鲤.exe` 就开。`阿鲤` 这个文件夹要整个拷走，别只拿 exe —— 界面、靶场、依赖都在 `_internal` 里。
-`plugins/` 和 `config.example.json` 就摆在 exe 旁边，加插件、写配置都在这儿动手。
+下载 `阿鲤-开源版-v1.0.zip`，解压后双击 `阿鲤.exe` 启动。
 
-**B. 从源码跑（改代码、调试用）**
+整个 `阿鲤` 文件夹需要一并保留。程序界面、教学靶场与运行依赖位于 `_internal` 目录，单独复制 exe 无法运行。
 
-1. **Python 3.12**
+`plugins/` 与 `config.example.json` 位于 exe 同级目录，分别用于安装插件和生成配置文件。
+
+### 方式二：从源码运行
+
+环境要求：Python 3.12。
+
+1. 安装依赖
+
    ```
    pip install -r requirements.txt
    ```
-2. **接入模型**（第一次打开时模型菜单是空的，这是故意的）：
-   - 点输入框右侧的模型按钮 →「接入 API」
-   - 填服务商名字 + Base URL + API Key；程序会去 `GET {Base URL}/v1/models` 真的拉一次模型列表，拉到了才算接入成功
-   - Base URL 一般填到 `/v1` 为止，例如 `https://你的中转站地址/v1`；填域名也行，程序会自动补 `/v1`
-   - Key 存在 `%APPDATA%\AliCore\secrets.json`，不写进 config.json，也不下发给界面
-   - 目前只支持 OpenAI 兼容协议的服务商；Anthropic 原生协议不支持
-3. **启动**
+
+2. 接入模型
+
+   首次启动时模型列表为空，需要手动接入一个 OpenAI 兼容接口。
+
+   - 点击输入框右侧的模型按钮，选择「接入 API」
+   - 填写服务商名称、Base URL 与 API Key
+   - 程序会请求 `GET {Base URL}/v1/models` 校验连通性，能够取到模型列表才算接入成功
+   - Base URL 填写到 `/v1` 为止，例如 `https://你的中转站地址/v1`；只填域名时程序会自动补全
+   - API Key 保存在 `%APPDATA%\AliCore\secrets.json`，不写入 `config.json`，也不传给前端
+   - 当前仅支持 OpenAI 兼容协议，Anthropic 原生协议不支持
+
+3. 启动
+
    ```
    python ali_app.py
    ```
 
-4. 左侧「工作空间」进靶场：教程只读、练习场随便改、实战模式有判题。
+4. 进入靶场
 
-5. 排障用安全模式：`python ali_app.py --safe-mode`，只挂只读工具、强制走 JSON 通道，
-   不执行任何写操作。窗口起不来、工具乱动的时候先用它。
+   点击左侧「工作空间」。教程区只读，练习区可修改，实战模式带自动判题。
+
+5. 安全模式
+
+   ```
+   python ali_app.py --safe-mode
+   ```
+
+   仅加载只读工具并强制使用 JSON 通道，不执行任何写操作。用于排查启动失败或工具误操作。
 
 ## 环境变量
 
@@ -68,65 +88,64 @@ AliCore/
 | `ALICORE_RUNTIME_DIR` | 运行时目录（TCC / Blender / Graphviz 缓存） | `<data>\_runtime` |
 | `ALICORE_SECRETS` | secrets.json 路径（测试隔离用） | `<data>\secrets.json` |
 | `ALICORE_PLUGIN_LIB` | 插件库根目录 | `app\plugins` |
-| `ALICORE_SW_EXE` | `SLDWORKS.exe` | 自动探常见安装位 |
+| `ALICORE_SW_EXE` | `SLDWORKS.exe` | 自动探测常见安装位置 |
 | `ALICORE_BLENDER_EXE` | `blender.exe` | `<runtime>\blender\blender.exe` |
-| `ALICORE_DOT_EXE` | Graphviz 的 `dot.exe` | 运行时包 / 常见安装位 / PATH |
-| `ALICORE_TTS_HOME` / `_REF` / `_PROMPT` | GPT-SoVITS 合成（只在 tools 脚本里用） | 不设则用 SAPI5 |
-| `ALICORE_AUTO_ALLOW` | 跳过工具确认弹窗（自担风险） | 关 |
+| `ALICORE_DOT_EXE` | Graphviz 的 `dot.exe` | 运行时包 / 常见安装位置 / PATH |
+| `ALICORE_TTS_HOME` / `_REF` / `_PROMPT` | GPT-SoVITS 合成（仅在 tools 脚本中使用） | 不设置则使用 SAPI5 |
+| `ALICORE_AUTO_ALLOW` | 跳过工具确认弹窗（自行承担风险） | 关闭 |
 
-## 靶场里有什么
+## 靶场内容
 
-- **41 份教程**：Python 25 份 + C 16 份，机械专业场景（零件计算器、库存报表、成绩管理）
-- **练习场**：45 个起始模板，改完点运行，`.c` 用 TinyCC 真编译
-- **实战题库**：88 道（改错 / 写原理 / 从零写），C 用隐藏断言防作弊
-- **分步导学**：40 课 × 6 步，数据在 `workspace/lesson_steps.json`
+- **41 份教程**：Python 25 份、C 16 份，围绕机械专业场景（零件计算器、库存报表、成绩管理）
+- **练习模板**：45 个起始文件，修改后可直接运行，`.c` 由 TinyCC 编译
+- **实战题库**：88 道（改错、写原理、从零编写），C 题目使用隐藏断言判分
+- **分步导学**：40 课 × 6 步，数据见 `workspace/lesson_steps.json`
 
-C 语言需要 TinyCC：仓库不打包编译器。首次点 C 教程或 C 题目时会弹窗提示，点「下载并启用」
-就从 GNU Savannah 官方镜像拉 `tcc-0.9.27-win64-bin.zip`（约 0.5 MB），解压到
-`<data>\_runtime\tcc\tcc\tcc.exe`，不写系统目录、不需要管理员权限。也可以手动放一份，
-或用 `ALICORE_RUNTIME_DIR` 指向已有运行时；没装只影响 `.c`，Python 照常用。
+C 语言需要 TinyCC，仓库不包含编译器。首次打开 C 教程或 C 题目时会提示下载，点击「下载并启用」后
+从 GNU Savannah 官方镜像获取 `tcc-0.9.27-win64-bin.zip`（约 0.5 MB），解压至
+`<data>\_runtime\tcc\tcc\tcc.exe`，不写入系统目录，不需要管理员权限。也可手动放置，或用
+`ALICORE_RUNTIME_DIR` 指向已有运行时。未安装仅影响 `.c`，Python 功能不受影响。
 
-## 上下文与工具（开源版和内部版不一样）
+## 上下文与工具
 
-内部版为了压月耗做了很多限制：历史只留 10 轮（约 3600 字符）、每 6 轮强制摘要、GLM 免费档兜底。开源版把这些全部放开，按「拿来干活」的标准重配：
+- **历史**：默认按 `context_window` 计算字符预算（131072 上下文约 147k 字符），超出时才从最旧的会话开始丢弃。需要固定上限时填写 `history_char_budget`。
+- **摘要**：默认在上下文占用达到 75% 时触发；`summary_every` 为 0 表示不按轮数摘要。
+- **单条消息**：默认不截断。
+- **推理强度**：设置面板可选，留空则不发送该字段。`low` / `medium` / `high` / `xhigh` / `max` 对应界面上的低 / 中 / 高 / 极高 / 最高。仅推理模型支持该参数（GPT-5 系列、o 系列，以及接受该参数的中转服务）；不支持的服务商会返回 400，因此默认不设置。
 
-- **历史**：默认不按轮数截，按 `context_window` 自动算字符预算（131072 上下文约 147k 字符，实测 160 条历史全量装下）。装不下才从最老的丢。想写死就在 `config.json` 里填 `history_char_budget`。
-- **摘要**：默认只在上下文压力到 75% 时触发，不再每 6 轮硬摘。`summary_every` 填 0 就是不按轮数摘要。
-- **单条消息**：默认不截断。老版写死 400 字符，一条长回答会被腰斩。
-- **推理强度**：设置面板里可以调，留空就不发这个字段。`low` / `medium` / `high` / `xhigh` / `max` 对应界面上的低 / 中 / 高 / 极高 / 最高。只对推理模型有效（GPT-5 系列、o 系列、认这个参数的中转站）；老模型和不认它的服务商收到会直接 400，所以默认不设。
-
-常驻工具（每轮都在清单里，15 个）：
+常驻工具（每轮固定加载，共 15 个）：
 
 `read_file` / `list_files` / `write_file` / `edit_file` / `apply_patch` / `search_text` / `run_command` / `run_python` / `http_get` / `web_search` / `todo_write` / `todo_read` / `remember` / `search_memory` / `dispatch_subagent`
 
-- `apply_patch`：一次提交多处改动的统一 diff，逐段精确匹配；对不上就报哪段没对上，不会改进错误的行
-- `run_command`：git / npm / pip / pytest / 构建，`cwd` 指定工作目录
-- `run_python`：隔离环境里跑 Python，要第三方库时用它
-- `http_get`：抓公网网页或接口，本机/内网地址拒绝
-- `web_search`：联网搜索，key 自己填（Tavily / 博查 / Serper），仓库不内置任何搜索 key
-- `todo_write` / `todo_read`：多步任务先列清单，模型自己勾进度
-- `dispatch_subagent`：把一件独立的事派给子 agent，它有自己的上下文，主对话只收结论；子 agent 不能再派子 agent
+- `apply_patch`：一次提交多处修改的统一 diff，逐段精确匹配；匹配失败时报告具体段落，不会改动错行
+- `run_command`：执行 git / npm / pip / pytest / 构建命令，可通过 `cwd` 指定工作目录
+- `run_python`：在隔离环境中运行 Python，需要第三方库时使用
+- `http_get`：抓取公网网页或接口，本机与内网地址会被拒绝
+- `web_search`：联网搜索，需自行填写 key（Tavily / 博查 / Serper），仓库不内置任何搜索密钥
+- `todo_write` / `todo_read`：多步任务先列清单，由模型更新进度
+- `dispatch_subagent`：将独立任务派给子 agent；子 agent 拥有独立上下文，主对话只接收结论，且不可再派生
 
-执行隔离：`sandbox: true`（默认）按 **Docker 断网容器 → cocoon 子进程 → 本地受限 exec** 依次降级。每次 `run_python` 的返回开头会标 `[docker·断网容器]` / `[cocoon·子进程]` / `[local·未隔离]`，一眼能看出这次到底隔离没隔离。
+执行隔离：`sandbox: true`（默认）按 **Docker 断网容器 → cocoon 子进程 → 本地受限 exec** 顺序降级。每次 `run_python` 的返回会标注 `[docker·断网容器]` / `[cocoon·子进程]` / `[local·未隔离]`，可据此确认本次执行的隔离级别。
 
-`run_command`、`run_python`、`edit_file`、`apply_patch`、`delete_file`、`move_file`、`open_path` 执行前会在界面弹「允许一次」。安全模式下只留只读工具。
+`run_command`、`run_python`、`edit_file`、`apply_patch`、`delete_file`、`move_file`、`open_path` 执行前会在界面弹出「允许一次」确认。安全模式下仅保留只读工具。
 
 ## 插件
 
-开源版只留 8 个，按「别人能不能直接跑起来」筛过：
+仓库内置 8 个插件，按可独立运行的标准筛选：
 
-| 插件 | 需要的依赖 |
+| 插件 | 依赖 |
 |---|---|
 | 技能库 | 技能目录（可选） |
 | SolidWorks 直驱 | SolidWorks + Millwright sidecar + pywin32 |
 | 文档 OCR | Ollama + `deepseek-ocr` 模型 |
 | Blender 人物建模 / VRM 二次元 | Blender + MPFB2 / VRM addon |
-| 架构图 | Pillow（装了 Graphviz 会走更好的自动布局） |
-| 白板 / 数据库建模 | 已经 build 好的前端 `dist` |
+| 架构图 | Pillow；安装 Graphviz 后使用自动布局 |
+| 白板 / 数据库建模 | 已构建的前端 `dist` |
 
-内部版还有三维建模（cadquery/trimesh）、Umi-OCR、distill 记忆去重、supermemory 四类，依赖重、要额外编二进制或独立后端，开源版默认不带。**实现代码还在 `plugins.py`**，需要的人把对应那一项加回 `build_plugins()` 就行。
+三维建模（cadquery/trimesh）、Umi-OCR、distill 记忆去重、supermemory 四类插件依赖较重，默认未启用；
+相关实现仍在 `plugins.py` 中，需要时可在 `build_plugins()` 里恢复。
 
-插件库本身不进仓库（带 node_modules，实测 4.4 GB）。放到 `plugins/` 下，或者用环境变量指过去：
+插件库未纳入仓库（含 node_modules，约 4.4 GB）。可放入 `plugins/` 目录，或用环境变量指定路径：
 
 ```bat
 set ALICORE_PLUGIN_LIB=D:\你的路径\插件
@@ -135,30 +154,27 @@ set ALICORE_BLENDER_EXE=D:\...\blender.exe
 set ALICORE_DOT_EXE=D:\...\dot.exe
 ```
 
-### 自己加插件
+### 添加插件
 
-在 `plugins/ext/` 放一个 `.py`，一个文件一个插件：
+在 `plugins/ext/` 下放置一个 `.py` 文件，一个文件对应一个插件：
 
 ```python
 PLUGIN = {"id": "my_plugin", "name": "我的插件", "category": "工具", "description": "..."}
 TOOLS  = [{"name": "my_tool", "description": "给模型看的说明", "func": my_func, "tags": ("关键词",)}]
 ```
 
-可选 `ready()` / `status()`，不写就当永远就绪。加载失败（语法错、字段缺、`func` 不可调用）只会跳过这一个文件，不影响内置插件。完整示例见 `plugins/ext/example_plugin.py`。
+可选实现 `ready()` / `status()`，未实现时视为始终就绪。加载失败（语法错误、字段缺失、`func` 不可调用）只会跳过该文件，不影响内置插件。完整示例见 `plugins/ext/example_plugin.py`。
 
-插件工具默认不进常驻上下文（`json_visible=False`），靠 tags 命中或被用户在列表里点「带入 →」才挂上——发完即卸，不改全局开关。
+插件工具默认不进入常驻上下文（`json_visible=False`），通过 tags 命中或由用户在列表中点击「带入 →」加载，调用结束后即卸载，不修改全局开关。
 
-## 语音怎么来（仓库不带音频）
+## 语音
 
-默认走 **Windows 内置中文语音（SAPI5）**：免费、离线、不联网，讲解文字不会发到任何服务器。
-首次点讲课/讲解时现场合成，缓存到 `<data>\_runtime\tts_cache`，同一段第二次是秒开。
-程序里点「语音音色 ⚙」能看到当前引擎和两个音频目录。
+默认使用 **Windows 内置中文语音（SAPI5）**：免费、离线，讲解文字不会发送到任何服务器。首次播放时实时合成并缓存至 `<data>\_runtime\tts_cache`，同一段内容再次播放无需重新合成。点击「语音音色 ⚙」可查看当前引擎与两个音频目录。
 
-想换成自己的音色：
+如需使用自定义音色：
 
-- 手里已经有 wav：教程放 `assets/voice/tutorial/<课key>/<节id>.wav`，练习放
-  `assets/voice/practice/<题id>.wav`，重启后优先用你的音频，缺失的段仍回落到内置语音
-- 想克隆音色：装 [GPT-SoVITS](https://github.com/RVC-Boss/GPT-SoVITS)，用 5 秒参考音频合成：
+- 已有音频文件：教程音频放 `assets/voice/tutorial/<课key>/<节id>.wav`，练习音频放 `assets/voice/practice/<题id>.wav`。重启后优先使用自定义音频，缺失片段回落到内置语音
+- 克隆音色：安装 [GPT-SoVITS](https://github.com/RVC-Boss/GPT-SoVITS)，使用 5 秒参考音频合成：
 
 ```
 set ALICORE_TTS_HOME=D:\GPT-SoVITS
@@ -170,7 +186,7 @@ python tools/voice_practice_tts.py
 python tools/voice_normalize.py
 ```
 
-## 数据放在哪
+## 数据位置
 
 | 内容 | 默认位置 |
 |---|---|
@@ -178,13 +194,13 @@ python tools/voice_normalize.py
 | 日志 / 沙箱临时文件 | `%APPDATA%\AliCore\_runtime` |
 | 密钥 | `%APPDATA%\AliCore\secrets.json` |
 
-代码目录**永远不写**用户数据。要换位置：
+代码目录不会写入任何用户数据。如需更改位置：
 
 ```
 python ali_app.py --data-dir D:\my-alicore-data --runtime-dir D:\my-alicore-runtime
 ```
 
-或设环境变量 `ALICORE_DATA_DIR` / `ALICORE_RUNTIME_DIR`。
+或设置环境变量 `ALICORE_DATA_DIR` / `ALICORE_RUNTIME_DIR`。
 
 ## 打包成 exe（可选）
 
@@ -193,39 +209,37 @@ pip install pyinstaller
 pyinstaller ali_app.spec --noconfirm
 ```
 
-产物在 `dist\阿鲤\`，整个文件夹一起发就行。界面、图标、40 课靶场、示例配置、LICENSE 都在 `_internal` 里；
-第一次启动会把这些播种到 `%APPDATA%\AliCore\workspace`，之后改的是数据目录那份，换新 exe 不会覆盖用户改过的题库。
-`plugins` 和 `config.json` 放 exe 同级，不进包。实测体积 143 MB（onedir）。
+产物位于 `dist\阿鲤\`，分发时需包含整个文件夹。界面、图标、40 课靶场、示例配置与 LICENSE 均打包在 `_internal` 目录；首次启动会将这些内容播种到 `%APPDATA%\AliCore\workspace`，此后读写的是数据目录中的副本，更换新版 exe 不会覆盖用户修改过的题库。`plugins` 与 `config.json` 放在 exe 同级目录，不打包进产物。实测体积约 143 MB（onedir）。
 
 ## 授权
 
 | 部分 | 授权 |
 |---|---|
 | 代码 | **MIT**（见 LICENSE） |
-| 教程 / 题库 / 分步导学（`workspace/`） | **CC BY-NC-SA 4.0**：可学习、可改、可分享，不可商用 |
+| 教程 / 题库 / 分步导学（`workspace/`） | **CC BY-NC-SA 4.0**：可学习、可修改、可分享，不可商用 |
 | 语音音频（`assets/voice/`） | 不随仓库分发（音色版权） |
-| 立绘 / 图标 | 仅作者自用，开源前请自行替换或确认版权 |
+| 立绘 / 图标 | 仅限作者自用，分发前请替换或确认版权 |
 
 ## 借鉴与致谢
 
-这个项目不是从零发明的，几处核心设计来自下面这些开源项目。有直接沿用、有改写、也有只借思路；每处具体落在哪个文件，都在那个文件的注释里写清了。
+本项目的若干核心设计借鉴自以下开源项目，包括直接沿用、改写和仅借鉴思路；具体实现位置见对应文件的注释。
 
 | 来源 | 许可 | 用在哪 |
 |---|---|---|
 | [HuggingFace/smolagents](https://github.com/huggingface/smolagents) | Apache-2.0 | CodeAgent 通道的循环骨架（一轮一个代码块 → 执行结果回灌 → `done()` 收口）；跨轮持久命名空间；工具=普通函数、按函数签名生成 schema；执行护栏的数值 |
 | [All-Hands-AI/OpenHands](https://github.com/All-Hands-AI/OpenHands) | MIT | UI / Agent / Runtime 的架构分层；Runtime 抽象（同一接口挂多套执行环境）；事件流（Action / Observation）；工具与 agent 解耦 |
-| [princeton-nlp/SWE-agent](https://github.com/princeton-nlp/SWE-agent) | MIT | Agent-Computer Interface（ACI）的几条硬规则：编辑前先过 linter、空结果必须明说「执行成功但没命中」 |
-| [Aider-AI/aider](https://github.com/Aider-AI/aider) | Apache-2.0 | 只作对照，没有沿用代码：`edit_file` 故意不做模糊匹配（aider 用约 20KB 处理这块）；`code_map` 用标准库 `ast` 而不是它的 repomap + tree-sitter |
+| [princeton-nlp/SWE-agent](https://github.com/princeton-nlp/SWE-agent) | MIT | Agent-Computer Interface（ACI）的若干硬规则：编辑前先过 linter、空结果必须明确说明「执行成功但未命中」 |
+| [Aider-AI/aider](https://github.com/Aider-AI/aider) | Apache-2.0 | 仅作对照，未沿用代码：`edit_file` 不做模糊匹配（aider 用约 20KB 处理该逻辑）；`code_map` 使用标准库 `ast` 而非其 repomap + tree-sitter |
 | [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness) 及其生态 | MIT | HTTP 退避重试（dsh-llm-retry）；规则式偏好捕获、凭证脱敏（dsh-engram，npm 包，维护者 skepsun） |
 
-BM25 打分公式出自信息检索的公开文献（Robertson & Zaragoza, 2009），实现是按公式自己写的。
+BM25 打分公式出自信息检索的公开文献（Robertson & Zaragoza, 2009），实现按公式自行编写。
 
-完整的版权归属、各项目的许可证位置、运行时依赖的许可清单见 [NOTICE](NOTICE)。
+完整的版权归属、各项目许可证位置与运行时依赖许可清单见 [NOTICE](NOTICE)。
 
 ## 已知限制
 
-- 只在 Windows 上跑过（pywebview 走 WinForms 后端）
-- 代码执行默认走 Docker；没装 Docker 时退回本地受限 exec
-- 没有安装器、没有自动更新
+- 仅在 Windows 上验证（pywebview 使用 WinForms 后端）
+- 代码执行默认使用 Docker；未安装 Docker 时降级为本地受限执行
+- 不提供安装器与自动更新
 - 个人项目，测试集中在核心链路
-- 教程按机械专业场景写，不是通用教材
+- 教程围绕机械专业场景编写，不是通用教材
