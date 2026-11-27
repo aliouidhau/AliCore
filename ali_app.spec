@@ -66,6 +66,7 @@ a = Analysis(
         "cadquery", "OCP", "vtk", "vtkmodules", "vtk.libs",
         "yt_dlp", "numba", "llvmlite", "pyarrow", "bitsandbytes",
         "safetensors", "av", "cv2", "scipy", "pandas", "sympy",
+        "numpy", "numpy.libs",
         "IPython", "notebook", "jupyter", "pytest", "sphinx",
         "PyQt5", "PyQt6", "PySide2", "PySide6", "wx",
     ],
@@ -102,3 +103,23 @@ coll = COLLECT(
     upx_exclude=[],
     name="阿鲤",
 )
+
+# 可写/可改的东西放 exe 同级，不塞进只读的 _internal：
+# plugins/ 让用户直接丢自己的插件进去；config.example.json 方便照着建 config.json。
+import shutil
+
+_dist_root = os.path.join(DISTPATH, "阿鲤")
+
+_src_plugins = os.path.join(_HERE, "plugins")
+if os.path.isdir(_src_plugins):
+    shutil.copytree(
+        _src_plugins,
+        os.path.join(_dist_root, "plugins"),
+        ignore=shutil.ignore_patterns("__pycache__", "*.pyc"),
+        dirs_exist_ok=True,
+    )
+
+for _name in ("config.example.json", "README.md"):
+    _src = os.path.join(_HERE, _name)
+    if os.path.exists(_src):
+        shutil.copy2(_src, os.path.join(_dist_root, _name))
