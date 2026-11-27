@@ -321,7 +321,7 @@ class CocoonRuntime(BaseRuntime):
 
         # --timeout 交给 cocoon 真杀（Job Object）；subprocess 只留 15 秒余量。
         # cwd 指向 tmp：cocoon 默认 --ro 挂「当前目录」，若继承基站的
-        # D:\MomoDesktop 会隐式挂载整个基站目录（实测挂大目录要 140 秒）。
+        # 会隐式挂载整个代码目录（实测挂大目录要 140 秒）。
         cmd = [
             self.cocoon_bin, "run", "--runtime", "python",
             "--timeout", str(timeout), "--mem", "512", "--no-gpu",

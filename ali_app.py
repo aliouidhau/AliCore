@@ -1,6 +1,6 @@
 """基站入口：只做三件事——开窗口、暴露 API、读写历史。
 
-执行逻辑全在 momo_agent/ 包里。这里是薄壳，规则是：
+执行逻辑全在 alicore_agent/ 包里。这里是薄壳，规则是：
   · 不改前端契约（chat / save_config / clear_history 名字和参数都不变）
   · 凭证只在后端（get_config 不下发任何 key）
   · 出任何异常都变成一句人话返回，不让窗口卡死
@@ -35,19 +35,19 @@ if sys.stderr is None:
 
 import webview
 
-from momo_agent import build_agent, LLMError
-from momo_agent.engine import CANCELLED_MARK
-from momo_agent.session_store import SessionStore
-from momo_agent.paths import resolve_paths, ensure_dirs, default_data_dir
-from momo_agent.fsutil import atomic_write_json
+from alicore_agent import build_agent, LLMError
+from alicore_agent.engine import CANCELLED_MARK
+from alicore_agent.session_store import SessionStore
+from alicore_agent.paths import resolve_paths, ensure_dirs, default_data_dir
+from alicore_agent.fsutil import atomic_write_json
 # 记忆的类型常量 / ID 方案 / 写锁统一由内核提供（单一来源，避免两套 hash 漂移）
-from momo_agent.memory import (
+from alicore_agent.memory import (
     MEMORY_KINDS, MEMORY_PIN_KINDS, MEMORY_LOCK, parse_memory_entries,
 )
-from momo_agent.redact import redact
-from momo_agent import progress as learn_progress
-from momo_agent import quiz as lesson_quiz
-from momo_agent import lessons as lesson_mod
+from alicore_agent.redact import redact
+from alicore_agent import progress as learn_progress
+from alicore_agent import quiz as lesson_quiz
+from alicore_agent import lessons as lesson_mod
 
 # AliCore：代码目录跟着程序走（源码模式看 __file__，打包后看 exe 所在目录）。
 # 用户数据默认落到 %APPDATA%\AliCore，不写进代码仓库，也不和本机原有的阿鲤共用配置和密钥。
@@ -67,7 +67,7 @@ MODEL_NAMES = {
     "deepseek-flash",
     "deepseek-v4-flash-vision-exp",
 }
-# MEMORY_KINDS / MEMORY_PIN_KINDS 已从 momo_agent.memory 导入（内核单一来源）
+# MEMORY_KINDS / MEMORY_PIN_KINDS 已从 alicore_agent.memory 导入（内核单一来源）
 HTML_FILE = os.path.join(APP_DIR, "ui_v2.html")
 START_LOG = os.path.join(DATA_DIR, "_startup.log")
 ARCHIVE_DIR = os.path.join(DATA_DIR, "sessions")
@@ -173,16 +173,56 @@ def _log(msg):
         pass
 
 
-def _sapi_synthesize(text, out_path):
-    """用 Windows 内置语音（SAPI5）把文字压成 wav：免费、离线、不联网。
+def _powershell_synthesize(text, out_path):
+    """零依赖兜底：借 Windows PowerShell 的 System.Speech 合成。
 
-    只在没有自带 wav 时兜底。失败抛 RuntimeError，由 Api 转成一句人话。
+    不要求装 pywin32，也不要求用户懂 pip。代价是每次起一个 powershell 进程，
+    一段约 1 秒；有缓存，同一段只听一次。
     """
+    txt = out_path + ".txt"
+    ps1 = out_path + ".ps1"
     try:
-        import pythoncom
-        import win32com.client as win32
-    except Exception as e:
-        raise RuntimeError("系统语音需要 pywin32（pip install pywin32）") from e
+        with open(txt, "w", encoding="utf-8") as f:
+            f.write(text)
+        # 脚本必须是纯 ASCII：Windows PowerShell 5.1 按 ANSI 读 .ps1，中文会解析失败
+        script = (
+            "Add-Type -AssemblyName System.Speech\n"
+            "$t = Get-Content -LiteralPath $env:ALICORE_TTS_TEXT -Raw -Encoding UTF8\n"
+            "$sp = New-Object System.Speech.Synthesis.SpeechSynthesizer\n"
+            "try { $sp.SelectVoice('Microsoft Huihui Desktop') } catch {}\n"
+            "$sp.SetOutputToWaveFile($env:ALICORE_TTS_OUT)\n"
+            "$sp.Speak($t)\n"
+            "$sp.Dispose()\n"
+        )
+        with open(ps1, "w", encoding="ascii") as f:
+            f.write(script)
+        env = dict(os.environ)
+        env["ALICORE_TTS_TEXT"] = txt
+        env["ALICORE_TTS_OUT"] = out_path
+        exe = os.path.join(os.environ.get("SystemRoot", r"C:\Windows"),
+                           "System32", "WindowsPowerShell", "v1.0", "powershell.exe")
+        if not os.path.isfile(exe):
+            exe = "powershell.exe"
+        p = subprocess.run(
+            [exe, "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", ps1],
+            env=env, capture_output=True, timeout=120,
+        )
+        if not os.path.isfile(out_path) or os.path.getsize(out_path) < 1024:
+            err = (p.stderr or b"").decode("utf-8", "ignore").strip()[:200]
+            raise RuntimeError(err or "这台机器没有可用的中文语音")
+    finally:
+        for tmp in (txt, ps1):
+            try:
+                os.remove(tmp)
+            except Exception:
+                pass
+
+
+def _win32_synthesize(text, out_path):
+    """装了 pywin32 就走这条：直接调 SAPI，快，不用起外部进程。"""
+    import pythoncom
+    import win32com.client as win32
+
     pythoncom.CoInitialize()
     try:
         voice = win32.Dispatch("SAPI.SpVoice")
@@ -196,7 +236,7 @@ def _sapi_synthesize(text, out_path):
                 picked = v
                 break
         if picked is None:
-            raise RuntimeError("系统里没找到中文语音，去「设置 → 时间和语言 → 语音」加一个")
+            raise RuntimeError("系统里没找到中文语音")
         voice.Voice = picked
         stream = win32.Dispatch("SAPI.SpFileStream")
         stream.Open(out_path, 3, False)  # SSFMCreateForWrite
@@ -205,6 +245,15 @@ def _sapi_synthesize(text, out_path):
         stream.Close()
     finally:
         pythoncom.CoUninitialize()
+
+
+def _sapi_synthesize(text, out_path):
+    """把文字压成 wav：优先 pywin32，没装就退回 PowerShell，两条路都免费、离线。"""
+    try:
+        return _win32_synthesize(text, out_path)
+    except Exception as e:
+        _log(f"[语音] pywin32 不可用（{e}），改用 PowerShell 合成")
+    return _powershell_synthesize(text, out_path)
 
 
 class Api:
@@ -319,9 +368,9 @@ class Api:
         """ToolRegistry 的确认钩子，返回 (是否允许, 拒绝原因)。
 
         没有界面时默认拒绝——宁可她卡住，也不要在没人看着的时候把文件删了。
-        无人值守的自测用 MOMO_AUTO_ALLOW=1 显式放行。
+        无人值守的自测用 ALICORE_AUTO_ALLOW=1 显式放行。
         """
-        if os.environ.get("MOMO_AUTO_ALLOW") == "1":
+        if os.environ.get("ALICORE_AUTO_ALLOW") == "1":
             return True, ""
         window = self._main_window()
         if window is None:
@@ -2247,7 +2296,7 @@ class Api:
         前端拿它做侧栏跳转；命令行用 _selftest/_report_session.py 看同一份。
         """
         try:
-            from momo_agent.events import turn_outline
+            from alicore_agent.events import turn_outline
             ledger = self._agent.ledger
             events = ledger.read_recent(limit=2000)
             turns = turn_outline(events, limit=max(1, min(int(limit or 50), 200)))

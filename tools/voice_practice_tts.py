@@ -7,9 +7,9 @@
     ... voice_practice_tts.py --force     # 全部重做（覆盖已有 wav）
 
 音色由环境变量决定（仓库不带音频，也不带参考音色）：
-    MOMO_TTS_HOME   GPT-SoVITS 安装目录
-    MOMO_TTS_REF    参考音色 wav
-    MOMO_TTS_PROMPT 参考音频对应的文字
+    ALICORE_TTS_HOME   GPT-SoVITS 安装目录
+    ALICORE_TTS_REF    参考音色 wav
+    ALICORE_TTS_PROMPT 参考音频对应的文字
 """
 import json
 import os
@@ -20,14 +20,14 @@ import wave
 import numpy as np
 
 APP_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-TTS_HOME = os.environ.get("MOMO_TTS_HOME", "")
-REF_AUDIO = os.environ.get("MOMO_TTS_REF", "")
-PROMPT_TEXT = os.environ.get("MOMO_TTS_PROMPT", "")
+TTS_HOME = os.environ.get("ALICORE_TTS_HOME", "")
+REF_AUDIO = os.environ.get("ALICORE_TTS_REF", "")
+PROMPT_TEXT = os.environ.get("ALICORE_TTS_PROMPT", "")
 SCRIPT_JSON = os.path.join(APP_DIR, "workspace", "practice_voice.json")
 OUT_DIR = os.path.join(APP_DIR, "assets", "voice", "practice")
 
 if not TTS_HOME or not REF_AUDIO:
-    print("需要先设置：MOMO_TTS_HOME（GPT-SoVITS 目录）、MOMO_TTS_REF（参考音色 wav）、MOMO_TTS_PROMPT（参考音频对应文字）", flush=True)
+    print("需要先设置：ALICORE_TTS_HOME（GPT-SoVITS 目录）、ALICORE_TTS_REF（参考音色 wav）、ALICORE_TTS_PROMPT（参考音频对应文字）", flush=True)
     raise SystemExit(2)
 
 sys.path.insert(0, TTS_HOME)

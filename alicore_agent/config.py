@@ -4,7 +4,7 @@
 
 凭证不外露这一条，光「不下发给前端」还不够——agent 自己就有 read_file，
 config.json 就摆在它工作目录里，它随时能把自己的钥匙读出来打印给你看。
-所以真值不进 config.json，改存到 %APPDATA%\\momo\\secrets.json：
+所以真值不进 config.json，改存到 %APPDATA%\\AliCore\\secrets.json：
 
   为什么是 APPDATA——tools_fs.py 的 DENY_DIRS 把当前账户的 AppData 整段拒了，
   agent 的 read_file / search_text / list_files 全都碰不到那里；而 config.json
@@ -39,10 +39,10 @@ SECRET_KEYS = ("api_key", "glm_key", "openai_key", "anthropic_key")
 
 # 环境变量优先级最高：适合临时换 key、或者在 CI / 别人的机器上跑而不落地
 ENV_MAP = {
-    "api_key": "MOMO_DEEPSEEK_KEY",
-    "glm_key": "MOMO_GLM_KEY",
-    "openai_key": "MOMO_OPENAI_KEY",
-    "anthropic_key": "MOMO_ANTHROPIC_KEY",
+    "api_key": "ALICORE_DEEPSEEK_KEY",
+    "glm_key": "ALICORE_GLM_KEY",
+    "openai_key": "ALICORE_OPENAI_KEY",
+    "anthropic_key": "ALICORE_ANTHROPIC_KEY",
 }
 
 DEFAULT_CONFIG = {

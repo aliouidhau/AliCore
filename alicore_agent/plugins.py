@@ -1,4 +1,4 @@
-"""插件层：把「Momo.学习资料\\插件」里的项目变成阿鲤可手动开关的工具。
+"""插件层：把「学习资料\\插件」里的项目变成阿鲤可手动开关的工具。
 
 设计原则：
   1. 插件默认全部关闭。用户在「管理插件」里手动开启，阿鲤才看得到、调得动。
@@ -22,6 +22,17 @@ from dataclasses import dataclass, field
 import requests
 
 _APP_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+def _runtime_root():
+    """可选组件的运行时目录：显式环境变量优先，否则跟数据目录同一处。"""
+    env = os.environ.get("ALICORE_RUNTIME_DIR")
+    if env:
+        return os.path.abspath(env)
+    base = os.environ.get("APPDATA") or os.path.expanduser("~")
+    return os.path.join(base, "AliCore", "_runtime")
+
+
 PLUGIN_LIB = os.path.join(_APP_DIR, "plugins")
 OUTPUT_DIR = os.path.join(_APP_DIR, "output", "plugins")
 STATE_FILE = os.path.join(_APP_DIR, "plugins_state.json")
@@ -375,7 +386,7 @@ def plugin_doc_ocr(path: str):
 
 # ------------------------------------------------------------------ Blender / MPFB 人物建模
 
-BLENDER_EXE = r"D:\blender5\blender.exe"
+BLENDER_EXE = os.environ.get("ALICORE_BLENDER_EXE") or os.path.join(_runtime_root(), "blender", "blender.exe")
 BLENDER_OUTPUT = os.path.join(OUTPUT_DIR, "blender")
 
 
@@ -475,7 +486,7 @@ def _human_script(gender, skin, hair, out_glb, out_obj):
 def plugin_blender_human(gender="female", skin=None, hair=None):
     """本地 Blender + MPFB 生成参数化人体，导出 GLB/OBJ。零 token。"""
     if not _blender_mpfb_ready():
-        return "❌ Blender 或 MPFB2 未就绪。需要 D:\\blender5\\blender.exe 且已装 MPFB 扩展。"
+        return "❌ Blender 或 MPFB2 未就绪。设 ALICORE_BLENDER_EXE 指向 blender.exe，并装好 MPFB2 扩展。"
     try:
         os.makedirs(BLENDER_OUTPUT, exist_ok=True)
     except Exception as e:
@@ -617,7 +628,7 @@ def _vrm_script(vrm_path, out_png, out_glb):
 def plugin_vrm_render(vrm_path, export_glb=True):
     """本地 Blender + VRM addon 导入 VRM(1.0)，三渲二渲染预览图，可选导出 GLB。零 token。"""
     if not _blender_vrm_ready():
-        return "❌ Blender 或 VRM 插件未就绪。需要 D:\\blender5\\blender.exe 且已装 VRM addon。"
+        return "❌ Blender 或 VRM 插件未就绪。设 ALICORE_BLENDER_EXE 指向 blender.exe，并装好 VRM addon。"
     p = os.path.abspath(os.path.normpath(vrm_path))
     if not os.path.exists(p):
         return f"❌ VRM 文件不存在：{p}"
@@ -674,8 +685,8 @@ def plugin_vrm_render(vrm_path, export_glb=True):
 
 
 def _runtime_bin(name, exe):
-    """在 D:\\MomoRuntime 下找便携运行时的可执行文件。"""
-    root = os.path.join(r"D:\MomoRuntime", name)
+    """在运行时目录下找便携组件的可执行文件。"""
+    root = os.path.join(_runtime_root(), name)
     if not os.path.isdir(root):
         return ""
     hits = []
@@ -693,7 +704,7 @@ def _dot_exe():
     return _runtime_bin("graphviz", "dot.exe")
 
 
-DISTILL_EXE = r"D:\MomoRuntime\distill.exe"
+DISTILL_EXE = os.path.join(_runtime_root(), "distill.exe")
 DISTILL_DIR = os.path.join(_APP_DIR, "knowledge", "distill")
 DISTILL_CONFIG = os.path.join(DISTILL_DIR, "distill.yaml")
 
@@ -1178,7 +1189,7 @@ class BlenderPlugin(PluginSpec):
 
     def status(self):
         if not os.path.exists(BLENDER_EXE):
-            return "Blender 未装（缺 D:\\blender5\\blender.exe）"
+            return "Blender 未装（设 ALICORE_BLENDER_EXE 指向 blender.exe）"
         if not os.path.exists(os.path.join(_mpfb_ext_root(), "__init__.py")):
             return "MPFB2 扩展未装"
         return "就绪"
@@ -1190,7 +1201,7 @@ class BlenderVRMPlugin(PluginSpec):
 
     def status(self):
         if not os.path.exists(BLENDER_EXE):
-            return "Blender 未装（缺 D:\\blender5\\blender.exe）"
+            return "Blender 未装（设 ALICORE_BLENDER_EXE 指向 blender.exe）"
         if not os.path.exists(os.path.join(_vrm_ext_root(), "__init__.py")):
             return "VRM addon 未装"
         return "就绪"

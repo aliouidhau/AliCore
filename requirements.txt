@@ -8,7 +8,8 @@ clr_loader==0.3.1
 requests==2.34.2
 pillow==12.3.0
 jieba==0.42.1
-# Windows 系统语音（SAPI5）：仓库不带语音音频，首次点讲解用它现场合成。非 Windows 跳过。
+# 可选：装了 pywin32 语音合成直接调 SAPI，快一点；
+# 没装也能出声（自动退回 PowerShell 的 System.Speech），所以不装不影响使用。
 pywin32==312; sys_platform == "win32"
 
 # 文档工具（tools_docs.py）：PDF / Word / PPT。缺了 make_* 三个工具会导入失败。

@@ -16,7 +16,7 @@ python-pptx 写 a:ea / a:cs——不设这两处，中文会回落宋体。
 import os
 import re
 
-OUTPUT_DIR = r"D:\MomoDesktop\output"
+OUTPUT_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "output")
 FONT_CN = r"C:\Windows\Fonts\msyh.ttc"
 FONT_CN_BD = r"C:\Windows\Fonts\msyhbd.ttc"
 
@@ -133,18 +133,18 @@ def _suggest_same_name(path):
     """路径拼错时按文件名在允许目录里找一遍，返回真实路径或空串。
 
     为什么做这个：2026-11-18 实测一次真实对话，用户把路径里的反斜杠写成了下划线
-    （MomoDesktop_selftest），模型花了 6 步里的 3 步在找文件，最后正好打满 max_rounds。
+    （demo_selftest），模型花了 6 步里的 3 步在找文件，最后正好打满 max_rounds。
     文件不存在时顺手替它找一下，比让它自己摸黑省 2-3 轮——这不是省 token，是省轮次。
     """
     name = os.path.basename(path)
     if not name:
         return ""
-    roots = (r"D:\MomoDesktop", r"D:\Momo_Project")
+    roots = (os.path.dirname(os.path.dirname(os.path.abspath(__file__))),)
     # 这些目录里不会有用户找的文档，但一个 venv 就是几万个文件。
-    # 实测 D:\Momo_Project\venv\Lib\site-packages 正好卡在「第 2 层」边界上，
+    # 实测 venv\Lib\site-packages 正好卡在「第 2 层」边界上，
     # 原来的 >2 判断拦不住它，于是每次路径拼错都要同步遍历几万个包文件。
     skip = {"venv", ".venv", "node_modules", "__pycache__", "site-packages",
-            ".git", "webview_storage", "momo.学习资料", "_selftest"}
+            ".git", "webview_storage", "学习资料", "_selftest"}
     for root in roots:
         if not os.path.isdir(root):
             continue

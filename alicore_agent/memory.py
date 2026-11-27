@@ -205,7 +205,7 @@ def rank_memory_entries(query, entries, k=3, min_rel=3.5):
     return out[:k]
 
 # ==================== 记忆条的单一来源 ====================
-# 为什么放在内核：桌面端（momo_app.py）和引擎（engine.py）都要认同一套
+# 为什么放在内核：桌面端（ali_app.py）和引擎（engine.py）都要认同一套
 # 类型、ID 和写原语。两边各写一份 hash 方案，编辑/删除就会指错条目。
 # 11-24 与桌面端对齐：ID = sha1(raw + 序号)[:12]，同一条重复行也能区分。
 

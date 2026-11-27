@@ -1,7 +1,7 @@
 """运行路径边界：app / data / runtime 三块分开。
 
 AliCore 默认把用户数据放到 %APPDATA%\\AliCore，不写进代码仓库：
-  app_dir     代码和前端资源：momo_app.py、ui_v2.html、cocoon、插件库
+  app_dir     代码和前端资源：ali_app.py、ui_v2.html、cocoon、插件库
   data_dir    用户数据：config、history、knowledge、workspace、events
   runtime_dir 可丢弃的运行产物：临时沙箱、日志、缓存、TCC
 

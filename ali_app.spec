@@ -22,7 +22,7 @@ for _pkg in ("jieba", "reportlab", "pptx", "docx", "pypdf", "PIL", "clr_loader",
     hiddenimports += _h
 
 # agent 整包子模块（静态分析基本能看到，列上保险）。
-hiddenimports += collect_submodules("momo_agent")
+hiddenimports += collect_submodules("alicore_agent")
 
 # webview Windows 后端 + pythonnet 启动模块 + requests（平台后端是运行时按系统选的，要显式列）。
 hiddenimports += [
@@ -33,7 +33,7 @@ hiddenimports += [
 ]
 
 a = Analysis(
-    [os.path.join(_HERE, "momo_app.py")],
+    [os.path.join(_HERE, "ali_app.py")],
     pathex=[_HERE],
     binaries=binaries,
     datas=datas,

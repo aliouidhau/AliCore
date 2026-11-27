@@ -1,13 +1,13 @@
-"""momo_agent：基站重构后的 agent 包。
+"""alicore_agent：基站重构后的 agent 包。
 
 分层（抄自 OpenHands 的边界划分）：
     UI(pywebview/HTML)  →  Api(薄壳)  →  BaseStationAgent(引擎)  →  Runtime(执行环境)
 UI 不执行任何动作，凭证只在后端，执行环境可切换（Docker / 本地）。
 
 用法：
-    from momo_agent import build_agent
+    from alicore_agent import build_agent
     agent = build_agent(BASE_DIR)
-    result = agent.chat("看看这个文件写了什么：D:\\MomoDesktop\\config.json")
+    result = agent.chat("看看这个文件写了什么：config.json")
 """
 
 from __future__ import annotations

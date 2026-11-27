@@ -3,9 +3,9 @@
 保留原有的三条安全设计（这是它更严谨的地方，重构不能丢）：
   1. 目录白名单——只能在指定目录里动
   2. 危险路径过滤——系统目录、可执行文件一律拒绝
-  3. 写前自动备份——原文件先复制到 D:\\MomoBackup，备份失败就不写
-另外保留「核心文件保护」：momo_app.py / ui_v2.html / config.json / chat_history.json 按名锁死；
-momo_agent 整包、_selftest 下的 .py、_heartbeat.py、requirements.txt 是基站代码，模型只读不写。
+  3. 写前自动备份——原文件先复制到 <data>\\_backup，备份失败就不写
+另外保留「核心文件保护」：ali_app.py / ui_v2.html / config.json / chat_history.json 按名锁死；
+alicore_agent 整包、_selftest 下的 .py、_heartbeat.py、requirements.txt 是基站代码，模型只读不写。
 """
 
 import ast
@@ -40,7 +40,7 @@ DENY_DIRS = [
 def _user_appdata_dirs():
     """当前账户的 AppData——不能写死用户名。
 
-    密钥在 %APPDATA%\\momo\\secrets.json，靠这条 DENY 拦住 read_file。
+    密钥在 %APPDATA%\\AliCore\\secrets.json，靠这条 DENY 拦住 read_file。
     原来硬编码某个账户的 AppData，换个账户名（改用户名、重装、换机器）
     整条防线就失效了，密钥直接摆在 agent 嘴边。
     """
@@ -71,15 +71,15 @@ DANGEROUS_DIRS = ("\\windows\\", "\\system32\\", "\\program files", "\\appdata\\
 # 原来把 ".sys" 放进子串匹配里，D:\x\.system 这种目录会被误拒——那是误伤，不是漏洞。
 DANGEROUS_EXTS = (".sys", ".dll", ".exe", ".bat", ".cmd", ".ps1")
 
-CORE_FILES = ["momo_app.py", "ui_v2.html", "config.json", "chat_history.json"]
+CORE_FILES = ["ali_app.py", "ui_v2.html", "config.json", "chat_history.json"]
 
 # 基站自己的代码：整包 + 自检目录下的 .py + 散落入口文件。她可以读（读自己的代码学习），但不许写。
 # 2026-11-21 的实测教训：核心文件原来只锁 4 个文件名，她 2026-11-20 22:10 自己改了
 # prompts.py 给自己加规矩——那次是好事；但同一条路也能删规矩，甚至改 tools_fs.py 拆自己的锁。
-# momo_agent 整包都锁；_selftest 只锁 .py（验证脚本改坏/篡改会毁掉自检），
+# alicore_agent 整包都锁；_selftest 只锁 .py（验证脚本改坏/篡改会毁掉自检），
 # 测试的临时文件（_tmp_tools 之类）读写不拦。
 AGENT_CODE_DIRS = [
-    os.path.normcase(os.path.join(ALLOWED_DIRS[0], "momo_agent")),
+    os.path.normcase(os.path.join(ALLOWED_DIRS[0], "alicore_agent")),
 ]
 _SELFTEST_DIR = os.path.normcase(os.path.join(ALLOWED_DIRS[0], "_selftest"))
 
@@ -120,8 +120,7 @@ def configure_paths(data_dir=None, app_dir=None):
 
     dirs = []
     # 本机历史遗留目录：存在才放行；换台机器这些目录不存在，自动跳过
-    extras = tuple(d for d in (r"D:\Momo_Project", r"D:\myflaskapp")
-                   if os.path.isdir(d))
+    extras = ()
     for d in (app, data) + extras:
         k = os.path.normcase(os.path.abspath(d))
         if k not in [os.path.normcase(x) for x in dirs]:
@@ -131,7 +130,7 @@ def configure_paths(data_dir=None, app_dir=None):
     BACKUP_DIR = os.path.join(data, "_backup")
     TRASH_DIR = os.path.join(BACKUP_DIR, "_trash")
     DATA_ROOT = data
-    AGENT_CODE_DIRS = [os.path.normcase(os.path.join(app, "momo_agent"))]
+    AGENT_CODE_DIRS = [os.path.normcase(os.path.join(app, "alicore_agent"))]
     _SELFTEST_DIR = os.path.normcase(os.path.join(app, "_selftest"))
     AGENT_CODE_FILES = [
         os.path.normcase(os.path.join(app, "_heartbeat.py")),
@@ -197,7 +196,7 @@ def read_file(path: str, start: int = 0, limit: int = 0):
     if hit:
         return f"❌ 拒绝读取：路径含危险关键词 {hit}"
     if not os.path.exists(full):
-        # 模型手写路径常把反斜杠当转义吃掉（D:\MomoDesktop\_x.txt → D:\MomoDesktop_x.txt），
+        # 模型手写路径常把反斜杠当转义吃掉（D:\demo\_x.txt → D:\demo_x.txt），
         # 这里给一份同目录的近似候选，让它下一步能自己纠
         parent = os.path.dirname(full)
         stem = os.path.basename(full).lower()
@@ -207,7 +206,7 @@ def read_file(path: str, start: int = 0, limit: int = 0):
                 if stem and (name.lower().startswith(stem[:4]) or stem.startswith(name.lower()[:4])):
                     tips.append(os.path.join(parent, name))
         hint = f"\n可能你想读的是：{tips[:3]}" if tips else ""
-        return f"❌ 文件不存在：{path}（路径里的反斜杠建议写成正斜杠，如 D:/MomoDesktop/x.txt）{hint}"
+        return f"❌ 文件不存在：{path}（路径里的反斜杠建议写成正斜杠，如 D:/demo/x.txt）{hint}"
     if os.path.getsize(full) > MAX_READ_BYTES:
         return f"❌ 文件太大（{os.path.getsize(full)//1024}KB），超过 500KB 上限"
     try:
@@ -235,7 +234,7 @@ def read_file(path: str, start: int = 0, limit: int = 0):
 
 
 # 递归扫目录时统一跳过这些：缓存、虚拟环境、前端依赖，扫它们只会白烧时间
-_SKIP_DIRS = {"__pycache__", ".git", "node_modules", "venv", "webview_storage", "Momo.学习资料"}
+_SKIP_DIRS = {"__pycache__", ".git", "node_modules", "venv", "webview_storage", "学习资料"}
 
 # 内容搜索跳过的二进制/产物后缀
 _SKIP_EXT = {".pyc", ".exe", ".dll", ".png", ".jpg", ".jpeg", ".gif", ".zip", ".7z",
@@ -335,7 +334,7 @@ def list_files(path: str = "", pattern: str = "", detail: bool = False):
 
 
 def delete_file(path: str):
-    """删文件——但不真删：移进 D:/MomoBackup/_trash，随时能捞回来。
+    """删文件——但不真删：移进 <data>/_backup/_trash，随时能捞回来。
 
     只处理单个文件，不删目录（rmtree 那种一删一串的，风险不是一个量级）。
     核心文件、系统区、危险后缀一律拒。

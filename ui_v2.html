@@ -25,7 +25,7 @@
     --accent-dim: rgba(121, 191, 209, .10);
     --accent-glow: rgba(121, 191, 209, .18);
     --user: #17252c;
-    --momo: #11191e;
+    --ali: #11191e;
     --online: #80bca6;
     --warn: #c4a672;
     --danger: #cf7f86;
@@ -266,7 +266,7 @@
     padding:12px 15px;
     border:1px solid var(--line);
     border-radius:3px 10px 10px 10px;
-    background:var(--momo);
+    background:var(--ali);
     font-size:var(--chat-font); line-height:1.75; color:#d2dde1;
     word-break:break-word; user-select:text;
     box-shadow:0 7px 24px rgba(0,0,0,.10);
@@ -275,8 +275,8 @@
     background:var(--user); border-color:rgba(121,191,209,.20);
     border-radius:10px 3px 10px 10px; color:#dce8eb;
   }
-  .msg.momo .bubble { position:relative; }
-  .msg.momo .bubble::before {
+  .msg.ali .bubble { position:relative; }
+  .msg.ali .bubble::before {
     content:""; position:absolute; left:-1px; top:10px; width:1px; height:18px;
     background:var(--accent); opacity:.7;
   }
@@ -1963,7 +1963,7 @@ button.paint-mode-chip:hover, button.paint-mode-chip.active { color:#dffff4; bor
     <p style="margin-bottom:6px;">想换成自己的音色，两条路：</p>
     <ol style="font-size:12px;color:var(--muted);line-height:1.8;padding-left:18px;margin:0 0 14px;">
       <li>手里已有 wav：按文件名放进下面两个目录，重启后优先用你的音频</li>
-      <li>想克隆音色：跑 <code>tools/tutorial_voice_tts.py</code>，先设 <code>MOMO_TTS_HOME</code>、<code>MOMO_TTS_REF</code>、<code>MOMO_TTS_PROMPT</code> 三个环境变量</li>
+      <li>想克隆音色：跑 <code>tools/tutorial_voice_tts.py</code>，先设 <code>ALICORE_TTS_HOME</code>、<code>ALICORE_TTS_REF</code>、<code>ALICORE_TTS_PROMPT</code> 三个环境变量</li>
     </ol>
     <div id="voicePaths" style="font-family:var(--mono);font-size:10px;color:#6d8792;line-height:1.7;word-break:break-all;white-space:pre-line;margin-bottom:18px;"></div>
     <div class="modal-actions"><button class="btn primary" onclick="closeVoiceInfo()">知道了</button></div>
@@ -2779,11 +2779,11 @@ function currentStamp() {
 }
 
 function messageShell(who, bodyHtml, stamp = '') {
-  const isMomo = who === 'momo';
+  const isAli = who === 'ali';
   const time = stamp || currentStamp();
-  const avatar = isMomo ? '<img src="assets/ali_icon_circle.png" alt="">' : '<span>YOU</span>';
+  const avatar = isAli ? '<img src="assets/ali_icon_circle.png" alt="">' : '<span>YOU</span>';
   return '<div class="msg-avatar">' + avatar + '</div>'
-    + '<div class="msg-body"><div class="msg-meta"><span class="msg-name">' + (isMomo ? '阿鲤' : '你') + '</span>'
+    + '<div class="msg-body"><div class="msg-meta"><span class="msg-name">' + (isAli ? '阿鲤' : '你') + '</span>'
     + '<span class="msg-time">' + time + '</span></div>'
     + '<div class="bubble">' + bodyHtml + '</div></div>';
 }
@@ -2802,9 +2802,9 @@ function addMsg(text, who, save = true, trace = null, stamp = '') {
   messages.appendChild(div);
   messages.scrollTop = messages.scrollHeight;
   if (save) {
-    let history = JSON.parse(localStorage.getItem('momo_chat') || '[]');
+    let history = JSON.parse(localStorage.getItem('ali_chat') || '[]');
     history.push({text, who, trace: trace || [], ts: msgTime});
-    localStorage.setItem('momo_chat', JSON.stringify(history));
+    localStorage.setItem('ali_chat', JSON.stringify(history));
   }
 }
 
@@ -3192,9 +3192,9 @@ function dispatchChat(item) {
 
   const loadingId = 'loading-' + Date.now();
   const loadDiv = document.createElement('div');
-  loadDiv.className = 'msg momo';
+  loadDiv.className = 'msg ali';
   loadDiv.id = loadingId;
-  loadDiv.innerHTML = messageShell('momo', '<div class="thinking"><span>正在思考</span><span class="thinking-dots"><i></i><i></i><i></i></span></div>');
+  loadDiv.innerHTML = messageShell('ali', '<div class="thinking"><span>正在思考</span><span class="thinking-dots"><i></i><i></i><i></i></span></div>');
   messages.appendChild(loadDiv);
   messages.scrollTop = messages.scrollHeight;
   const bubble = loadDiv.querySelector('.bubble');
@@ -3231,7 +3231,7 @@ function dispatchChat(item) {
       if (approvalCurrent) decideToolApproval('deny', '这一轮已暂停，按拒绝处理');
       addSystemMsg('已暂停这一轮。要接着做，把剩下的话重新发一遍。');
     } else {
-      addMsg(reply, 'momo', true, traceLines);
+      addMsg(reply, 'ali', true, traceLines);
     }
     setChatBusy(false);
     drainPending();
@@ -3284,7 +3284,7 @@ function newChat() {
   messages.innerHTML = '';
   messages.appendChild(emptyState);
   emptyState.style.display = 'block';
-  localStorage.removeItem('momo_chat');
+  localStorage.removeItem('ali_chat');
   if (window.pywebview && window.pywebview.api) {
     window.pywebview.api.clear_history().then(res => {
       toast(res || '已开启新对话');
@@ -3458,7 +3458,7 @@ function renderSession(history, limit) {
   history.slice(start).forEach(msg => {
     const stamp = msg.ts || '时间未记录';
     if (msg.role === 'user') addMsg(msg.content, 'user', false, [], stamp);
-    else if (msg.role === 'assistant') addMsg(msg.content, 'momo', false, [], stamp);
+    else if (msg.role === 'assistant') addMsg(msg.content, 'ali', false, [], stamp);
   });
   updateEmptyState();
   messages.scrollTop = messages.scrollHeight;
