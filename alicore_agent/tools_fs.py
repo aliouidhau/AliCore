@@ -465,8 +465,9 @@ def write_file(path: str, content: str, append: bool = False):
         return f"❌ 拒绝写入：路径含危险关键词 {hit}"
 
     # .py 目标先过语法门禁：在内存里把「写完之后的全文」compile 一遍，语法错不落盘。
-    # edit_file 早就有这道（ACI 第 1 条），write_file 一直漏着——她写一段截断的代码
-    # 进 prompts.py 这种启动路径文件，当场没事，下次重启基站直接起不来。
+    # edit_file 早就有这道（ACI 第 1 条，参考 Princeton NLP 开源的 SWE-agent，MIT），
+    # write_file 一直漏着——她写一段截断的代码进 prompts.py 这种启动路径文件，
+    # 当场没事，下次重启基站直接起不来。
     if full.lower().endswith(".py"):
         try:
             merged = content
@@ -512,7 +513,8 @@ def edit_file(path: str, old: str, new: str):
 
     这是改大文件最省的做法——改 300 行文件里的 5 行，输出从几千 token 降到几十。
     找不到 / 不唯一都直接报错让它补上下文重来，不做模糊匹配：
-    那正是 aider 花 20KB 处理的事，基站场景简单，宁可让它重试一次。
+    那正是 aider（Paul Gauthier 开源，Apache-2.0）花 20KB 处理的事，
+    这里场景简单，宁可让它重试一次。
 
     复用 write_file 的白名单、核心文件保护和自动备份，安全规则不重写一遍。
     """
@@ -542,7 +544,7 @@ def edit_file(path: str, old: str, new: str):
 
     new_content = content.replace(old, new, 1)
 
-    # ACI 第 1 条（SWE-agent）：编辑前跑 linter，语法不对就不让落地。
+    # ACI 第 1 条（Princeton NLP 开源的 SWE-agent，MIT）：编辑前跑 linter，语法不对就不让落地。
     # 只在 .py 上做——json/html 不是 Python 语法，compile 会全错。
     # 本地 CPU，零 token；回报是「改坏了」根本写不进盘，不用等备份回滚。
     if full.lower().endswith(".py"):
@@ -615,7 +617,7 @@ def search_text(keyword: str, path: str = "", max_hits: int = 30):
             + ("，已到上限，可能有更多" if len(hits) >= max_hits else ""))
     if hits:
         return head + "\n" + "\n".join(hits)
-    # ACI 第 4 条（SWE-agent）：空结果必须明说「是执行成功、不是工具坏了」。
+    # ACI 第 4 条（Princeton NLP 开源的 SWE-agent，MIT）：空结果必须明说「是执行成功、不是工具坏了」。
     # 只写「没有命中」时，模型会把它读成「这里什么都没有」——实测踩过（把 pattern 没匹配
     # 当成目录是空的，报了「都清完了」，实际里面还有 3 个文件）。
     return (head + "\n（**搜索本身执行成功了，不是工具坏了。**这个范围里确实没有一行含这个词。"
@@ -625,8 +627,9 @@ def search_text(keyword: str, path: str = "", max_hits: int = 30):
 def code_map(path: str = "", max_files: int = 20):
     """扫 .py 文件，输出「文件 → 类/函数 + 行号」的紧凑结构图。
 
-    用标准库 ast，不依赖 tree-sitter——aider 的 repomap 是 27KB + 多语言 grammar，
-    基站只改自己的 Python，ast 能拿到 80% 的价值，还是零依赖。
+    用标准库 ast，不依赖 tree-sitter——aider（Paul Gauthier 开源，Apache-2.0）的
+    repomap 是 27KB + 多语言 grammar，这里只改自己的 Python，ast 能拿到 80% 的价值，
+    还是零依赖。
     目的是：模型不用整读 400 行文件，就知道里面有什么、该从第几行动手。
     """
     full = _resolve(path or DATA_ROOT)

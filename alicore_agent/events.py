@@ -1,7 +1,8 @@
 """事件流。
 
-抄自 OpenHands 的思路：agent 的每一步都变成一条事件（动作 / 观察 / 错误 / 回答），
-UI 只订阅事件、不参与执行。
+这段根据 All Hands AI 开源的 OpenHands（MIT）进行二次创作：
+OpenHands 把 agent 的每一步记成 Action / Observation 事件，UI 只订阅事件、不参与执行。
+这里压成了更轻的 kind + label + payload 结构，落盘成只追加的 jsonl 账本。
 
 两层：
   · 内存 events：给前端轮询，keep=40，会滚动；

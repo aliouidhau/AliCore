@@ -124,6 +124,20 @@ python ali_app.py --data-dir D:\my-alicore-data --runtime-dir D:\my-alicore-runt
 | 语音音频（`assets/voice/`） | 不随仓库分发（音色版权） |
 | 立绘 / 图标 | 仅作者自用，开源前请自行替换或确认版权 |
 
+## 借鉴与致谢
+
+这个项目不是从零发明的，几处核心设计来自下面这些开源项目。有直接沿用、有改写、也有只借思路；每处具体落在哪个文件，都在那个文件的注释里写清了。
+
+| 来源 | 许可 | 用在哪 |
+|---|---|---|
+| [HuggingFace/smolagents](https://github.com/huggingface/smolagents) | Apache-2.0 | CodeAgent 通道的循环骨架（一轮一个代码块 → 执行结果回灌 → `done()` 收口）；跨轮持久命名空间；工具=普通函数、按函数签名生成 schema；执行护栏的数值 |
+| [All-Hands-AI/OpenHands](https://github.com/All-Hands-AI/OpenHands) | MIT | UI / Agent / Runtime 的架构分层；Runtime 抽象（同一接口挂多套执行环境）；事件流（Action / Observation）；工具与 agent 解耦 |
+| [princeton-nlp/SWE-agent](https://github.com/princeton-nlp/SWE-agent) | MIT | Agent-Computer Interface（ACI）的几条硬规则：编辑前先过 linter、空结果必须明说「执行成功但没命中」 |
+| [Aider-AI/aider](https://github.com/Aider-AI/aider) | Apache-2.0 | 只作对照，没有沿用代码：`edit_file` 故意不做模糊匹配（aider 用约 20KB 处理这块）；`code_map` 用标准库 `ast` 而不是它的 repomap + tree-sitter |
+| [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness) 及其生态 | MIT | HTTP 退避重试（dsh-llm-retry）；规则式偏好捕获、凭证脱敏（dsh-engram，npm 包，维护者 skepsun） |
+
+BM25 打分公式出自信息检索的公开文献（Robertson & Zaragoza, 2009），实现是按公式自己写的。
+
 ## 已知限制
 
 - 只在 Windows 上跑过（pywebview 走 WinForms 后端）

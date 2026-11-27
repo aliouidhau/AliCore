@@ -1,6 +1,6 @@
 """alicore_agent：基站重构后的 agent 包。
 
-分层（抄自 OpenHands 的边界划分）：
+架构分层这一段根据 All Hands AI 开源的 OpenHands（MIT）进行二次创作：
     UI(pywebview/HTML)  →  Api(薄壳)  →  BaseStationAgent(引擎)  →  Runtime(执行环境)
 UI 不执行任何动作，凭证只在后端，执行环境可切换（Docker / 本地）。
 

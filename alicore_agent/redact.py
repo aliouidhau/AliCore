@@ -1,6 +1,7 @@
 """凭证脱敏：写进记忆/日志之前先把密钥抹掉。
 
-抄自 dsh-engram 的确定性脱敏器：API key、JWT、Bearer、私钥、
+这段根据 DeepSeek Harness（DeepSeek AI 开源，MIT）生态里的 dsh-engram 插件
+（npm 包，维护者 skepsun）的确定性脱敏器进行二次创作：API key、JWT、Bearer、私钥、
 AWS/GitHub/Stripe/Slack token、以及 key=value 形式的密钥，
 一律替换成 <REDACTED:类型>，而且**在去重和落盘之前**完成。
 

@@ -1,7 +1,8 @@
 """执行环境抽象。
 
-抄自 OpenHands：执行环境（Runtime）和 agent 分开，同一个接口两种实现——
-DockerRuntime（断网容器，基站原来就有）和 LocalRuntime（本地受限 exec，快但不算安全边界）。
+这段根据 All Hands AI 开源的 OpenHands（MIT）进行二次创作：
+OpenHands 把执行环境（Runtime）从 Agent 里拆出来，同一个接口挂多套实现。
+这里保留 DockerRuntime（断网容器）和 LocalRuntime（本地受限 exec，快但不算安全边界）。
 engine 只认 Runtime 接口，换环境不用改 agent 代码。
 """
 
@@ -236,7 +237,7 @@ class DockerRuntime(BaseRuntime):
 class LocalRuntime(BaseRuntime):
     """本地受限 exec。
 
-    注意（照抄 smolagents 的原话）：这不是安全边界，只挡了 import/open/eval，
+    注意（引用 HuggingFace 开源的 smolagents（Apache-2.0）里对本地执行器的原话）：这不是安全边界，只挡了 import/open/eval，
     挡不住真正懂 Python 的攻击者。单人自用够用，别拿它跑不可信代码。
     """
 

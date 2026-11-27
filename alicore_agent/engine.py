@@ -1,10 +1,13 @@
 """Agent 引擎：两条通道。
 
 1) JSON 通道：原生 tool_calls，多轮循环（旧版基站只跑一轮工具就收工，这是最硬的一个坑，这里修掉）。
-2) CodeAgent 通道：模型一次写一段 Python 跑多步，抄 smolagents。
+2) CodeAgent 通道：模型一次写一段 Python 跑多步。
+   这段根据 HuggingFace 开源的 smolagents（Apache-2.0）进行二次创作：
+   保留了「一轮一个代码块、执行结果回灌、done() 收口」的循环骨架，
+   改成中文提示词 + 自建受限命名空间 + 跨轮变量快照。
 
 变量策略——这里是练手项目要验证的那个问题：
-  按 smolagents 原样，命名空间跨轮持久（上轮算出的变量这轮还在）；
+  参考 smolagents（Apache-2.0）的做法，命名空间跨轮持久（上轮算出的变量这轮还在）；
   但每步开头拍一次快照，这步报错就回滚到快照，只留干净的。
   能回滚的：不可变值（整数/字符串/元组…）被改，以及变量被换成另一个对象。
   回滚不了的：list/dict 被 in-place 改（append/pop/元素赋值）——只有深拷贝才能救，
@@ -44,7 +47,8 @@ class TurnCancelled(Exception):
     """用户中断了这一轮。只在检查点抛，不会打断正在发的 HTTP 请求。"""
 
 
-# 执行护栏。数值参照 smolagents 的 local_python_executor.py 第 57-60 行
+# 执行护栏。数值参照 HuggingFace 开源的 smolagents（Apache-2.0）
+# local_python_executor.py 第 57-60 行
 # （MAX_EXECUTION_TIME_SECONDS = 30 / MAX_OPERATIONS = 10000000 / MAX_WHILE_ITERATIONS = 1000000），
 # 但实现不同：它是 AST walker，能在循环体里逐节点检查；我们是 exec，
 # 只能在 sys.settrace 的 line 事件上查。所以这几个值按「exec 查得到的粒度」重定。
@@ -55,6 +59,8 @@ CODE_TRACE_EVERY = 2000       # 每 N 行查一次时间，摊薄 settrace 的�
 
 # AST 静态闸禁调用的函数名：运行时本来就没有（_SAFE_BUILTINS 不含），
 # 提前拦是为了报错更清楚，也防将来往 _SAFE_BUILTINS 加东西时忘了这块。
+# 这份清单参考了 HuggingFace 开源的 smolagents（Apache-2.0）local_python_executor.py
+# 里「禁 dunder / 禁危险内建」的思路，具体名单按本项目的工具集重写。
 _FORBIDDEN_CALLS = {
     "exec", "eval", "compile", "open", "__import__", "input",
     "getattr", "setattr", "delattr", "hasattr",
@@ -108,7 +114,7 @@ MEMORY_EXTRACT_EVERY = 12   # 每 N 轮（1问1答）抽一次
 
 # 重复调用提醒：同一工具 + 完全相同的参数连续重复到这些次数时，追加一句提醒。
 # 抄 DSH 的 dsh-repeat-tool-reminder（它默认 [3,5,8]）。阿鲤实测的重复只到 ×2，
-# 所以门槛从 2 起——照抄 3 等于没装。提醒只加在消息末尾，不打断前缀缓存。
+# 所以门槛从 2 起——门槛直接给 3 等于没装。提醒只加在消息末尾，不打断前缀缓存。
 REPEAT_REMIND_AT = (2, 4)
 REPEAT_ARGS_PREVIEW = 500
 MEMORY_EXTRACT_MAX = 6      # 每次最多写入几条

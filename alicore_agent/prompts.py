@@ -21,6 +21,9 @@ JSON_SYSTEM = """{persona}
 """
 
 
+# 这段提示词根据 HuggingFace 开源的 smolagents（Apache-2.0）的 CodeAgent 提示词
+# 进行二次创作：保留「一轮一个代码块 / 等执行结果回灌 / done() 收口」的结构，
+# 改成中文，并把工具清单压成一行行真实函数签名。
 CODE_SYSTEM = """{persona}
 
 你是一个会用代码干活的助手。任务交给你，你自己决定查什么、怎么改，用 Python 代码完成。

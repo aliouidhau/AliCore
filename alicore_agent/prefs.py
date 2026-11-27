@@ -1,6 +1,7 @@
 """规则式偏好捕获：零 LLM、零 token。
 
-抄自 dsh-engram 的 autoCapturePreferences。阿鲤原来靠本地 Ollama 每 12 轮抽事实，
+这段根据 DeepSeek Harness（DeepSeek AI 开源，MIT）生态里的 dsh-engram 插件
+（npm 包，维护者 skepsun）进行二次创作。阿鲤原来靠本地 Ollama 每 12 轮抽事实，
 慢、而且抽得不准（memory.md 里出现过「女方正在测试插件」——把助手自己记成了用户的
 第三人称事实）。可「用户纠正她」这种话，其实按句式就能认出来，而且立刻就该记住。
 

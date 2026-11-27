@@ -1,8 +1,10 @@
 """工具注册表。
 
-抄自 smolagents：工具就是普通 Python 函数，模型看到的是一行真实函数签名
-（不是 JSON schema），调用时直接传参。
-抄自 OpenHands：工具和 agent 解耦，统一注册、统一执行、统一报错。
+这段根据 HuggingFace 开源的 smolagents（Apache-2.0）进行二次创作：
+工具就是普通 Python 函数，模型看到的是一行真实函数签名（不是手写 JSON schema），调用时直接传参。
+
+工具和 agent 解耦、统一注册、统一执行、统一报错，这段根据 All Hands AI 开源的
+OpenHands（MIT）进行二次创作。
 
 2026-11-24 补的三件事：
   1. 统一审计：每次调用前后各记一条事件，进 ledger；参数里的 key/token 打码。
